@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "mbrs"
+version = "0.1.0"
+description = ""
+authors = ["Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>"]
+license = "MIT"
+readme = "README.rst"
+packages = [{include = "mbrs"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.1.0"
+isort = "^5.13.2"
+mypy = "^1.8.0"
+flake8 = "^7.0.0"
+ptpython = "^3.0.25"
+pytest = "^7.4.4"
+pytest-cov = "^4.1.0"
+
+[tool.coverage.run]
+omit = ["*_test.py"]
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
