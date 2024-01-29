@@ -42,6 +42,10 @@ class MetricCOMET(Metric):
             if cfg.float16:
                 self.scorer = self.scorer.half()
 
+    @property
+    def device(self) -> torch.device:
+        return self.scorer.device
+
     def compute_sentence_embedding(
         self, sentences: list[str], batch_size: int
     ) -> torch.Tensor:
@@ -67,6 +71,24 @@ class MetricCOMET(Metric):
             )
         embeds = torch.vstack(embeds)
         return embeds
+
+    def compute_output_projection(
+        self,
+        hyp_embeds: torch.Tensor,
+        ref_embeds: torch.Tensor,
+        src_embeds: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Compute scores of the given triplets of vectors.
+
+        Args:
+            hyp_embeds (torch.Tensor): Hypothesis embeddings of shape `(N, D)`.
+            ref_embeds (torch.Tensor): Reference embeddings of shape `(N, D)`.
+            src_embeds (torch.Tensor, optional): Source embeddings of shape `(N, D)`.
+
+        Returns:
+            torch.Tensor: N scores.
+        """
+        return self.scorer.estimate(src_embeds, hyp_embeds, ref_embeds)["score"]
 
     def score(
         self, hypothesis: str, reference: str, source: Optional[str] = None
@@ -114,7 +136,7 @@ class MetricCOMET(Metric):
         ).repeat(R, 1)
 
         for i in range(H):
-            scores[i, :] = self.scorer.estimate(
-                src_embeds, hyp_embeds[i, :].repeat(R, 1), ref_embeds
-            )["score"]
+            scores[i, :] = self.compute_output_projection(
+                hyp_embeds[i, :].repeat(R, 1), ref_embeds, src_embeds
+            )
         return scores.cpu().float().numpy()

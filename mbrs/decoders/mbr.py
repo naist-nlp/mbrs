@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import numpy as np
+from typing import Optional
 
-from mbrs.metrics import Metric
+import numpy as np
 
 from . import Decoder, register
 
@@ -11,29 +11,26 @@ from . import Decoder, register
 class DecoderMBR(Decoder):
     """MBR decoder class."""
 
-    def __init__(self, cfg: DecoderMBR.Config, metric: Metric):
-        self.cfg = cfg
-        self.metric = metric
-
     def decode(
         self,
         hypotheses_set: list[list[str]],
         references_set: list[list[str]],
-        *args,
-        **kwargs,
+        source_set: Optional[list[str]] = None,
     ) -> list[DecoderMBR.Output]:
         """Select the best hypothesis based on the strategy.
 
         Args:
             hypotheses_set (list[list[str]]): Set of hypotheses.
             references_set (list[list[str]]): Set of references.
+            source_set (list[str], optional): Set of each source.
 
         Returns:
             list[DecoderMBR.Output]: The best hypotheses.
         """
         outputs = []
         for i, (hyps, refs) in enumerate(zip(hypotheses_set, references_set)):
-            scores = self.metric.pairwise_score(hyps, refs)
+            source = source_set[i] if source_set is not None else None
+            scores = self.metric.pairwise_score(hyps, refs, source)
             expected_utility = scores.mean(axis=1)
             best_idx = int(np.argmax(expected_utility))
             outputs.append(

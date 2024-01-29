@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
+from typing import Optional
 
 from mbrs.metrics.base import Metric
 
@@ -9,10 +10,13 @@ from mbrs.metrics.base import Metric
 class Decoder(abc.ABC):
     """Base decoder class."""
 
-    def __init__(self, cfg: Config, metric: Metric): ...
+    def __init__(self, cfg: Config, metric: Metric) -> None:
+        self.cfg = cfg
+        self.metric = metric
 
     @dataclass
-    class Config: ...
+    class Config:
+        """Configuration for the decoder."""
 
     @dataclass
     class Output:
@@ -31,14 +35,14 @@ class Decoder(abc.ABC):
         self,
         hypotheses_set: list[list[str]],
         references_set: list[list[str]],
-        *args,
-        **kwargs,
+        source_set: Optional[list[str]] = None
     ) -> list[Output]:
         """Select the best hypothesis based on the strategy.
 
         Args:
             hypotheses_set (list[list[str]]): Set of hypotheses.
             references_set (list[list[str]]): Set of references.
+            source_set (list[str], optional): Set of each source.
 
         Returns:
             list[Decoder.Output]: The best hypotheses.
