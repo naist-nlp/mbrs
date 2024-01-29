@@ -9,6 +9,8 @@ packages = [{include = "mbrs"}]
 
 [tool.poetry.dependencies]
 python = "^3.10"
+numpy = "^1.26.3"
+sacrebleu = {extras = ["ja"], version = "^2.4.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.0"

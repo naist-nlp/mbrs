@@ -10,6 +10,11 @@ def setup(registry_name: str):
 
     Args:
         registry_name (str): Registry name for grouping classes.
+
+    Returns:
+        Tuple of the two functions:
+          - register: Register a class as the given name.
+          - get_cls: Return the registered class of the given name.
     """
     REGISTRY = {}
     REGISTRIES[registry_name] = REGISTRY
