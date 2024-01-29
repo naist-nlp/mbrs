@@ -11,6 +11,8 @@ packages = [{include = "mbrs"}]
 python = "^3.10"
 numpy = "^1.26.3"
 sacrebleu = {extras = ["ja"], version = "^2.4.0"}
+torch = "^2.1.2"
+unbabel-comet = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.0"
