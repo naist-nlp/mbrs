@@ -45,11 +45,15 @@ class TestMetricBLEU:
                 assert np.isclose(
                     SCORES_EFFECTIVE_ORDER[effective_order][i, j],
                     metric.score(hyp, ref),
-                    atol=0.0005
+                    atol=0.0005,
                 )
 
     @pytest.mark.parametrize("effective_order", [True, False])
-    def test_pairwise_score(self, effective_order: bool):
+    def test_expected_scores(self, effective_order: bool):
         metric = MetricBLEU(MetricBLEU.Config(effective_order=effective_order))
-        scores = metric.pairwise_score(HYPOTHESES, REFERENCES)
-        assert np.allclose(scores, SCORES_EFFECTIVE_ORDER[effective_order], atol=0.0005)
+        expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
+        assert np.allclose(
+            expected_scores,
+            SCORES_EFFECTIVE_ORDER[effective_order].mean(axis=1),
+            atol=0.0005,
+        )

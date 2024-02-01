@@ -3,10 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
-import torch
-
-from mbrs.metrics import Metric, MetricCOMET
+from mbrs.metrics import MetricCOMET, MetricNeural
 from mbrs.modules.kmeans import Kmeans
 
 from . import register
@@ -20,10 +17,9 @@ class DecoderCBMBR(DecoderMBR):
     SUPPORTED_METRICS = (MetricCOMET,)
     cfg: Config
 
-    def __init__(self, cfg: DecoderCBMBR.Config, metric: Metric) -> None:
+    def __init__(self, cfg: DecoderCBMBR.Config, metric: MetricNeural) -> None:
         if not isinstance(metric, self.SUPPORTED_METRICS):
             raise ValueError(f"{type(metric)} is not supported in CBMBR.")
-
         super().__init__(cfg, metric)
 
     @dataclass
@@ -43,53 +39,39 @@ class DecoderCBMBR(DecoderMBR):
 
     def decode(
         self,
-        hypotheses_set: list[list[str]],
-        references_set: list[list[str]],
-        source_set: Optional[list[str]] = None,
-    ) -> list[DecoderMBR.Output]:
-        """Select the best hypothesis based on the strategy.
+        hypotheses: list[str],
+        references: list[str],
+        source: Optional[str] = None,
+        nbest: int = 1,
+    ) -> DecoderCBMBR.Output:
+        """Select the n-best hypotheses based on the strategy.
 
         Args:
-            hypotheses_set (list[list[str]]): Set of hypotheses.
-            references_set (list[list[str]]): Set of references.
-            source_set (list[str], optional): Set of each source.
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+            nbest (int): Return the n-best hypotheses.
 
         Returns:
-            list[DecoderMBR.Output]: The best hypotheses.
+            DecoderCBMBR.Output: The n-best hypotheses.
         """
+
         assert isinstance(self.metric, self.SUPPORTED_METRICS)
 
-        outputs = []
-        bsz = self.metric.cfg.batch_size
-        for i, (hyps, refs) in enumerate(zip(hypotheses_set, references_set)):
-            H, R = len(hyps), min(self.cfg.ncentroids, len(refs))
-            scores = torch.zeros((H, R), dtype=torch.float32, device=self.metric.device)
-            hyp_embeds = self.metric.compute_sentence_embedding(hyps, bsz)
-            ref_embeds = self.metric.compute_sentence_embedding(refs, bsz)
-            src_embeds = (
-                self.metric.compute_sentence_embedding([source_set[i]], bsz).repeat(
-                    H, 1
-                )
-                if source_set is not None
-                else None
-            )
-            kmeans = Kmeans(R, ref_embeds.size(-1), kmeanspp=self.cfg.kmeanspp)
-            centroids, assigns = kmeans.train(
-                ref_embeds, niter=self.cfg.niter, seed=self.cfg.seed
-            )
-            for k in range(R):
-                scores[:, k] = self.metric.compute_output_projection(
-                    hyp_embeds, centroids[k].repeat(H, 1), src_embeds
-                )
-            scores = scores.cpu().float().numpy()
-
-            expected_utility = scores.mean(axis=1)
-            best_idx = int(np.argmax(expected_utility))
-            outputs.append(
-                self.Output(
-                    idx=best_idx,
-                    sentence=hyps[best_idx],
-                    score=float(expected_utility[best_idx]),
-                )
-            )
-        return outputs
+        ir = self.metric.encode(hypotheses, references, source)
+        kmeans = Kmeans(
+            min(self.cfg.ncentroids, len(references)),
+            ir.ref.size(-1),
+            kmeanspp=self.cfg.kmeanspp,
+        )
+        centroids, _ = kmeans.train(ir.ref, niter=self.cfg.niter, seed=self.cfg.seed)
+        centroid_ir = self.metric.IR(ir.hyp, centroids, ir.src)
+        expected_scores = (
+            self.metric.out_proj(centroid_ir).mean(dim=1).cpu().float().numpy()
+        )
+        topk_scores, topk_indices = self._topk(expected_scores, k=nbest)
+        return self.Output(
+            idx=topk_indices,
+            sentence=[hypotheses[idx] for idx in topk_indices],
+            score=topk_scores,
+        )

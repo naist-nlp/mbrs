@@ -31,7 +31,7 @@ class TestMetricChrF:
             for j, ref in enumerate(REFERENCES):
                 assert np.isclose(SCORES[i, j], metric.score(hyp, ref), atol=0.0005)
 
-    def test_pairwise_score(self):
+    def test_expected_scores(self):
         metric = MetricChrF(MetricChrF.Config())
-        scores = metric.pairwise_score(HYPOTHESES, REFERENCES)
-        assert np.allclose(scores, SCORES, atol=0.0005)
+        expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
+        assert np.allclose(expected_scores, SCORES.mean(axis=1), atol=0.0005)

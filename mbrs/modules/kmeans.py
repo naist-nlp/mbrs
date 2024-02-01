@@ -95,7 +95,7 @@ class Kmeans:
             Tensor: Assigend IDs of shape `(n,)`.
         """
         if self.ncentroids == 1:
-            self.centroids = x.mean(dim=0)
+            self.centroids = x.mean(dim=0, keepdim=True)
             return self.centroids, self.assign(x)
 
         torch.manual_seed(seed)

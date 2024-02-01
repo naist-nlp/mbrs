@@ -39,11 +39,12 @@ class TestDecoderMBR:
             DecoderMBR.Config(),
             MetricBLEU(MetricBLEU.Config(effective_order=effective_order)),
         )
-        outputs = decoder.decode(HYPOTHESES, REFERENCES)
-        assert [o.idx for o in outputs] == BEST_INDICES
-        assert [o.sentence for o in outputs] == BEST_SENTENCES
-        assert np.allclose(
-            np.array([o.score for o in outputs], dtype=np.float32),
-            SCORES_EFFECTIVE_ORDER[effective_order],
-            atol=0.0005,
-        )
+        for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
+            output = decoder.decode(hyps, refs, nbest=1)
+            assert output.idx[0] == BEST_INDICES[i]
+            assert output.sentence[0] == BEST_SENTENCES[i]
+            assert np.allclose(
+                np.array(output.score[0], dtype=np.float32),
+                SCORES_EFFECTIVE_ORDER[effective_order][i],
+                atol=0.0005,
+            )

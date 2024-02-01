@@ -37,20 +37,17 @@ NCENTROIDS = 2
 
 
 class TestDecoderCBMBR:
-    @pytest.fixture(scope="class")
-    def metric(self):
-        return MetricCOMET(MetricCOMET.Config())
-
     @pytest.mark.parametrize("kmeanspp", [True, False])
-    def test_decode(self, metric: MetricCOMET, kmeanspp: bool):
+    def test_decode(self, metric_comet: MetricCOMET, kmeanspp: bool):
         decoder = DecoderCBMBR(
-            DecoderCBMBR.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp), metric
+            DecoderCBMBR.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp), metric_comet
         )
-        outputs = decoder.decode(HYPOTHESES, REFERENCES, SOURCE)
-        assert [o.idx for o in outputs] == BEST_INDICES
-        assert [o.sentence for o in outputs] == BEST_SENTENCES
-        assert np.allclose(
-            np.array([o.score for o in outputs], dtype=np.float32),
-            SCORES,
-            atol=0.0005 / 100,
-        )
+        for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
+            output = decoder.decode(hyps, refs, SOURCE[i], nbest=1)
+            assert output.idx[0] == BEST_INDICES[i]
+            assert output.sentence[0] == BEST_SENTENCES[i]
+            assert np.allclose(
+                np.array(output.score[0], dtype=np.float32),
+                SCORES[i],
+                atol=0.0005 / 100,
+            )

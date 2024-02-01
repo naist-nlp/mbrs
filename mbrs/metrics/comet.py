@@ -3,20 +3,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
-import numpy.typing as npt
 import torch
 from comet import download_model, load_from_checkpoint
 
-from . import Metric, register
+from mbrs.metrics.base import MetricNeural
+
+from . import MetricNeural, register
 
 
 @register("comet")
-class MetricCOMET(Metric):
+class MetricCOMET(MetricNeural):
     """COMET metric class."""
 
     @dataclass
-    class Config(Metric.Config):
+    class Config(MetricNeural.Config):
         """COMET metric configuration.
 
         - model (str): Model name or path.
@@ -42,13 +42,20 @@ class MetricCOMET(Metric):
             if cfg.float16:
                 self.scorer = self.scorer.half()
 
+    @dataclass
+    class IR(MetricNeural.IR):
+        """Intermediate representations."""
+
+        hyp: torch.Tensor
+        ref: torch.Tensor
+        src: torch.Tensor
+
     @property
     def device(self) -> torch.device:
+        """Returns the device of the model."""
         return self.scorer.device
 
-    def compute_sentence_embedding(
-        self, sentences: list[str], batch_size: int
-    ) -> torch.Tensor:
+    def embed_sentences(self, sentences: list[str], batch_size: int) -> torch.Tensor:
         """Compute sentence embedding vectors of the given sentences.
 
         Args:
@@ -72,47 +79,10 @@ class MetricCOMET(Metric):
         embeds = torch.vstack(embeds)
         return embeds
 
-    def compute_output_projection(
-        self,
-        hyp_embeds: torch.Tensor,
-        ref_embeds: torch.Tensor,
-        src_embeds: Optional[torch.Tensor] = None,
-    ) -> torch.Tensor:
-        """Compute scores of the given triplets of vectors.
-
-        Args:
-            hyp_embeds (torch.Tensor): Hypothesis embeddings of shape `(N, D)`.
-            ref_embeds (torch.Tensor): Reference embeddings of shape `(N, D)`.
-            src_embeds (torch.Tensor, optional): Source embeddings of shape `(N, D)`.
-
-        Returns:
-            torch.Tensor: N scores.
-        """
-        return self.scorer.estimate(src_embeds, hyp_embeds, ref_embeds)["score"]
-
-    def score(
-        self, hypothesis: str, reference: str, source: Optional[str] = None
-    ) -> float:
-        """Calculate the score of the given hypothesis.
-
-        Args:
-            hypothesis (str): A hypothesis.
-            reference (str): A reference.
-            source (str, optional): A source.
-
-        Returns:
-            float: The score of the given hypothesis.
-        """
-        assert source is not None
-        hyp_embed = self.compute_sentence_embedding([hypothesis], 1)
-        ref_embed = self.compute_sentence_embedding([reference], 1)
-        src_embed = self.compute_sentence_embedding([source], 1)
-        return self.scorer.estimate(src_embed, hyp_embed, ref_embed)["score"][0].item()
-
-    def pairwise_score(
+    def encode(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
-    ) -> npt.NDArray[np.float32]:
-        """Calculate the pairwise scores for each hypothesis.
+    ) -> IR:
+        """Encode the given sentences into their intermediate representations.
 
         Args:
             hypotheses (list[str]): Hypotheses.
@@ -120,23 +90,36 @@ class MetricCOMET(Metric):
             source (str, optional): A source.
 
         Returns:
-            NDArray[np.float32]: A score matrix of shape `(H, R)`, where
+            MetricCOMET.IR: Intermediate representations.
+        """
+        assert source is not None
+        hyp_embed = self.embed_sentences(hypotheses, self.cfg.batch_size)
+        ref_embed = (
+            self.embed_sentences(references, self.cfg.batch_size)
+            if references != hypotheses
+            else hyp_embed
+        )
+        src_embed = self.embed_sentences([source], self.cfg.batch_size)
+        return self.IR(hyp_embed, ref_embed, src_embed)
+
+    def out_proj(self, ir: IR) -> torch.Tensor:
+        """Forward the output projection layer.
+
+        Args:
+            ir (MetricCOMET.IR): Intermediate representations
+              computed by the `encode` method.
+
+        Returns:
+            torch.Tensor: H x R score matrix, where
               - H: the number of hypotheses
               - R: the number of references
         """
-
-        H, R = len(hypotheses), len(references)
-        scores = torch.zeros((H, R), dtype=torch.float32, device=self.scorer.device)
-
-        assert source is not None
-        hyp_embeds = self.compute_sentence_embedding(hypotheses, self.cfg.batch_size)
-        ref_embeds = self.compute_sentence_embedding(references, self.cfg.batch_size)
-        src_embeds = self.compute_sentence_embedding(
-            [source], self.cfg.batch_size
-        ).repeat(R, 1)
-
+        H, D = ir.hyp.size()
+        R, _ = ir.ref.size()
+        src = ir.src.repeat(R, 1)
+        scores = []
         for i in range(H):
-            scores[i, :] = self.compute_output_projection(
-                hyp_embeds[i, :].repeat(R, 1), ref_embeds, src_embeds
+            scores.append(
+                self.scorer.estimate(src, ir.hyp[i, :].repeat(R, 1), ir.ref)["score"]
             )
-        return scores.cpu().float().numpy()
+        return torch.vstack(scores)
