@@ -74,7 +74,7 @@ class DecoderCBMBR(DecoderMBR):
         expected_scores = (
             self.metric.out_proj(centroid_ir).mean(dim=1).cpu().float().numpy()
         )
-        topk_scores, topk_indices = self._topk(expected_scores, k=nbest)
+        topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(
             idx=topk_indices,
             sentence=[hypotheses[idx] for idx in topk_indices],

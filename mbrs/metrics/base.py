@@ -8,6 +8,8 @@ import numpy as np
 import numpy.typing as npt
 import torch
 
+from mbrs.modules import topk
+
 
 class Metric(abc.ABC):
     """Base metric class."""
@@ -15,8 +17,27 @@ class Metric(abc.ABC):
     def __init__(self, cfg: Config):
         self.cfg = cfg
 
+    HIGHER_IS_BETTER: bool = True
+
     @dataclass
     class Config: ...
+
+    def topk(
+        self, x: npt.NDArray[np.float32], k: int = 1
+    ) -> tuple[list[float], list[int]]:
+        """Return the top-k best elements and corresponding indices.
+
+        Args:
+            x (NDArray[np.float32]): Input 1-D array.
+            k (int): Return the top-k values and indices.
+
+        Returns:
+            tuple[list[float], list[int]]
+              - list[float]: The top-k values.
+              - list[int]: The top-k indices.
+        """
+        values, indices = topk(x, k=min(k, len(x)), largest=self.HIGHER_IS_BETTER)
+        return values.tolist(), indices.tolist()
 
     @abc.abstractmethod
     def score(
@@ -135,8 +156,27 @@ class MetricReferenceless(abc.ABC):
     def __init__(self, cfg: Config):
         self.cfg = cfg
 
+    HIGHER_IS_BETTER: bool = True
+
     @dataclass
     class Config: ...
+
+    def topk(
+        self, x: npt.NDArray[np.float32], k: int = 1
+    ) -> tuple[list[float], list[int]]:
+        """Return the top-k best elements and corresponding indices.
+
+        Args:
+            x (NDArray[np.float32]): Input 1-D array.
+            k (int): Return the top-k values and indices.
+
+        Returns:
+            tuple[list[float], list[int]]
+              - list[float]: The top-k values.
+              - list[int]: The top-k indices.
+        """
+        values, indices = topk(x, k=min(k, len(x)), largest=self.HIGHER_IS_BETTER)
+        return values.tolist(), indices.tolist()
 
     @abc.abstractmethod
     def score(self, hypothesis: str, source: str) -> float:

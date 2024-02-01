@@ -17,10 +17,16 @@ def topk(x: np.ndarray, k: int, largest: bool = True) -> tuple[np.ndarray, np.nd
     """
 
     if largest:
-        indices = np.argpartition(x, -k)[-k:]
+        if k == len(x):
+            indices = np.arange(k)
+        else:
+            indices = np.argpartition(x, -k)[-k:]
         argsort = np.argsort(-x[indices])
     else:
-        indices = np.argpartition(x, k)[:k]
+        if k == len(x):
+            indices = np.arange(k)
+        else:
+            indices = np.argpartition(x, k)[:k]
         argsort = np.argsort(x[indices])
 
     indices = np.take_along_axis(indices, argsort, 0)

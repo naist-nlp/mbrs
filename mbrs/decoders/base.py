@@ -4,11 +4,7 @@ import abc
 from dataclasses import dataclass
 from typing import Optional
 
-import numpy as np
-import numpy.typing as npt
-
 from mbrs.metrics.base import Metric, MetricReferenceless
-from mbrs.modules import topk
 
 
 class DecoderBase(abc.ABC):
@@ -29,23 +25,6 @@ class DecoderBase(abc.ABC):
         idx: list[int]
         sentence: list[str]
         score: list[float]
-
-    def _topk(
-        self, x: npt.NDArray[np.float32], k: int = 1
-    ) -> tuple[list[float], list[int]]:
-        """Return the top-k largest elements and corresponding indices.
-
-        Args:
-            x (NDArray[np.float32]): Input 1-D array.
-            k (int): Return the top-k values and indices.
-
-        Returns:
-            tuple[list[float], list[int]]
-              - list[float]: The top-k values.
-              - list[int]: The top-k indices.
-        """
-        values, indices = topk(x, k=min(k, len(x)), largest=True)
-        return values.tolist(), indices.tolist()
 
 
 class DecoderReferenceBased(DecoderBase, metaclass=abc.ABCMeta):
