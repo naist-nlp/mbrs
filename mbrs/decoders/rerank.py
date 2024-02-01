@@ -5,7 +5,11 @@ from . import DecoderReferenceless, register
 
 @register("rerank")
 class DecoderRerank(DecoderReferenceless):
-    """Reranking decoder class."""
+    """Reranking decoder class.
+
+    - Time complexity: O(N)
+    - Space complexity: O(N)
+    """
 
     def decode(
         self, hypotheses: list[str], source: str, nbest: int = 1

@@ -12,7 +12,12 @@ from .mbr import DecoderMBR
 
 @register("cbmbr")
 class DecoderCBMBR(DecoderMBR):
-    """Centroid-Based MBR decoder class."""
+    """Centroid-Based MBR decoder class.
+
+    - Time complexity: O(Nk)
+    - Space complexity: O(Nk)
+    where k << N.
+    """
 
     SUPPORTED_METRICS = (MetricCOMET,)
     cfg: Config

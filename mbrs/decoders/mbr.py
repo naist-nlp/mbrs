@@ -7,7 +7,21 @@ from . import DecoderReferenceBased, register
 
 @register("mbr")
 class DecoderMBR(DecoderReferenceBased):
-    """MBR decoder class."""
+    """Naive MBR decoder class.
+
+    - Time complexity: O(N^2)
+    - Space complexity: O(N^2)
+
+    References:
+        S. Kumar and W. Byrne, 2004,
+        "Minimum Bayes-Risk Decoding for Statistical Machine Translation".
+        https://aclanthology.org/N04-1022
+
+        B. Eikema and W. Aziz, 2020,
+        "Is MAP Decoding All You Need?
+        The Inadequacy of the Mode in Neural Machine Translation".
+        https://aclanthology.org/2020.coling-main.398
+    """
 
     def decode(
         self,
