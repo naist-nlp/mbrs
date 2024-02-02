@@ -6,10 +6,12 @@ register, get_decoder = registry.setup("decoder")
 
 from .cbmbr import DecoderCBMBR
 from .mbr import DecoderMBR
+from .pruning_mbr import DecoderPruningMBR
 
 __all__ = [
     "DecoderReferenceBased",
     "DecoderReferenceless",
     "DecoderMBR",
     "DecoderCBMBR",
+    "DecoderPruningMBR",
 ]

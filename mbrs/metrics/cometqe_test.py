@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from .comet_qe import MetricCOMETQE
+from .cometqe import MetricCOMETQE
 
 SOURCE = "これはテストです"
 HYPOTHESES = [

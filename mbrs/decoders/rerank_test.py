@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from mbrs.metrics.comet_qe import MetricCOMETQE
+from mbrs.metrics.cometqe import MetricCOMETQE
 
 from .rerank import DecoderRerank
 

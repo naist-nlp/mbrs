@@ -47,9 +47,7 @@ class TestDecoderPruningMBR:
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
             assert np.allclose(
-                np.array(output.score[0], dtype=np.float32),
-                SCORES_CHRF[i],
-                atol=0.0005
+                np.array(output.score[0], dtype=np.float32), SCORES_CHRF[i], atol=0.0005
             )
 
     def test_decode_comet(self, metric_comet: MetricCOMET):
@@ -63,5 +61,5 @@ class TestDecoderPruningMBR:
             assert np.allclose(
                 np.array(output.score[0], dtype=np.float32),
                 SCORES_COMET[i],
-                atol=0.0005
+                atol=0.0005,
             )
