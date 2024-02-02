@@ -39,6 +39,19 @@ class Metric(abc.ABC):
         values, indices = topk(x, k=min(k, len(x)), largest=self.HIGHER_IS_BETTER)
         return values.tolist(), indices.tolist()
 
+    def argbest(self, x: npt.NDArray[np.float32]) -> int:
+        """Return the index of the best element.
+
+        Args:
+            x (NDArray[np.float32]): Input 1-D array.
+
+        Returns:
+            int: The best index.
+        """
+        if self.HIGHER_IS_BETTER:
+            return int(np.argmax(x))
+        return int(np.argmin(x))
+
     @abc.abstractmethod
     def score(
         self, hypothesis: str, reference: str, source: Optional[str] = None
@@ -54,6 +67,28 @@ class Metric(abc.ABC):
             float: The score of the given hypothesis.
         """
 
+    def pairwise_scores(
+        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+    ) -> npt.NDArray[np.float32]:
+        """Calculate the pairwise scores.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+
+        Returns:
+            NDArray[np.float32]: Score matrix of shape `(H, R)`, where `H` is the number
+              of hypotheses and `R` is the number of references.
+        """
+        return np.array(
+            [
+                [self.score(hyp, ref, source) for ref in references]
+                for hyp in hypotheses
+            ],
+            dtype=np.float32,
+        )
+
     def expected_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
     ) -> npt.NDArray[np.float32]:
@@ -67,13 +102,7 @@ class Metric(abc.ABC):
         Returns:
             NDArray[np.float32]: The expected scores for each hypothesis.
         """
-        return np.array(
-            [
-                [self.score(hyp, ref, source) for ref in references]
-                for hyp in hypotheses
-            ],
-            dtype=np.float32,
-        ).mean(axis=1)
+        return self.pairwise_scores(hypotheses, references, source).mean(axis=1)
 
 
 class MetricNeural(Metric, metaclass=abc.ABCMeta):
@@ -131,6 +160,23 @@ class MetricNeural(Metric, metaclass=abc.ABCMeta):
             float: The score of the given hypothesis.
         """
         return self.out_proj(self.encode([hypothesis], [reference], source)).item()
+
+    def pairwise_scores(
+        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+    ) -> npt.NDArray[np.float32]:
+        """Calculate the pairwise scores.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+
+        Returns:
+            NDArray[np.float32]: Score matrix of shape `(H, R)`, where `H` is the number
+              of hypotheses and `R` is the number of references.
+        """
+        ir = self.encode(hypotheses, references, source)
+        return self.out_proj(ir).cpu().float().numpy()
 
     def expected_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
