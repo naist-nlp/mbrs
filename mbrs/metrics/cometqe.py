@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-import numpy.typing as npt
 import torch
 from comet import download_model, load_from_checkpoint
 
@@ -58,7 +56,7 @@ class MetricCOMETQE(MetricReferenceless):
         """
         return self.scores([hypothesis], source).item()
 
-    def scores(self, hypotheses: list[str], source: str) -> npt.NDArray[np.float32]:
+    def scores(self, hypotheses: list[str], source: str) -> torch.Tensor:
         """Calculate the scores of hypotheses.
 
         Args:
@@ -66,8 +64,8 @@ class MetricCOMETQE(MetricReferenceless):
             source (str): A source.
 
         Returns:
-            NDArray[np.float32]: The scores of hypotheses.
+            torch.Tensor: The scores of hypotheses.
         """
         data = [{"src": source, "mt": hyp} for hyp in hypotheses]
         model_output = self.scorer.predict(data, batch_size=self.cfg.batch_size, gpus=1)
-        return np.array(model_output.scores).reshape(len(hypotheses))
+        return torch.Tensor(model_output.scores).view(len(hypotheses))

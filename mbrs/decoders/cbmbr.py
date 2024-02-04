@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from mbrs.metrics import MetricCOMET, MetricNeural
+from mbrs.metrics import MetricCacheable, MetricCOMET
 from mbrs.modules.kmeans import Kmeans
 
 from . import register
@@ -19,12 +19,9 @@ class DecoderCBMBR(DecoderMBR):
     where k << N.
     """
 
-    SUPPORTED_METRICS = (MetricCOMET,)
     cfg: Config
 
-    def __init__(self, cfg: DecoderCBMBR.Config, metric: MetricNeural) -> None:
-        if not isinstance(metric, self.SUPPORTED_METRICS):
-            raise ValueError(f"{type(metric)} is not supported in CBMBR.")
+    def __init__(self, cfg: DecoderCBMBR.Config, metric: MetricCacheable) -> None:
         super().__init__(cfg, metric)
 
     @dataclass
@@ -61,18 +58,23 @@ class DecoderCBMBR(DecoderMBR):
             DecoderCBMBR.Output: The n-best hypotheses.
         """
 
-        assert isinstance(self.metric, self.SUPPORTED_METRICS)
+        assert isinstance(self.metric, MetricCacheable)
 
-        ir = self.metric.encode(hypotheses, references, source)
+        hypotheses_ir = self.metric.encode(hypotheses)
+        references_ir = self.metric.encode(references)
+        source_ir = self.metric.encode([source]) if source is not None else None
         kmeans = Kmeans(
             min(self.cfg.ncentroids, len(references)),
-            ir.ref.size(-1),
+            references_ir.size(-1),
             kmeanspp=self.cfg.kmeanspp,
         )
-        centroids, _ = kmeans.train(ir.ref, niter=self.cfg.niter, seed=self.cfg.seed)
-        centroid_ir = self.metric.IR(ir.hyp, centroids, ir.src)
+        centroids, _ = kmeans.train(
+            references_ir, niter=self.cfg.niter, seed=self.cfg.seed
+        )
         expected_scores = (
-            self.metric.out_proj(centroid_ir).mean(dim=1).cpu().float().numpy()
+            self.metric.pairwise_scores_from_ir(hypotheses_ir, centroids, source_ir)
+            .mean(dim=1)
+            .float()
         )
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(

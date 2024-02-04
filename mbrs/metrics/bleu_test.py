@@ -1,5 +1,5 @@
-import numpy as np
 import pytest
+import torch
 
 from .bleu import MetricBLEU
 
@@ -15,23 +15,21 @@ REFERENCES = [
     "producţia de zahăr brut se exprimă în zahăr alb;",
 ]
 SCORES_EFFECTIVE_ORDER = {
-    True: np.array(
+    True: torch.Tensor(
         [
             [0.0, 100.0, 0.0],
             [0.0, 18.394, 0.0],
             [0.0, 59.460, 0.0],
             [0.0, 0.0, 8.493],
-        ],
-        dtype=np.float32,
+        ]
     ),
-    False: np.array(
+    False: torch.Tensor(
         [
             [0.0, 100.0, 0.0],
             [0.0, 0.0, 0.0],
             [0.0, 59.460, 0.0],
             [0.0, 0.0, 8.493],
-        ],
-        dtype=np.float32,
+        ]
     ),
 }
 
@@ -42,9 +40,9 @@ class TestMetricBLEU:
         metric = MetricBLEU(MetricBLEU.Config(effective_order=effective_order))
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):
-                assert np.isclose(
+                assert torch.isclose(
                     SCORES_EFFECTIVE_ORDER[effective_order][i, j],
-                    metric.score(hyp, ref),
+                    torch.tensor(metric.score(hyp, ref)),
                     atol=0.0005,
                 )
 
@@ -52,8 +50,9 @@ class TestMetricBLEU:
     def test_expected_scores(self, effective_order: bool):
         metric = MetricBLEU(MetricBLEU.Config(effective_order=effective_order))
         expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
-        assert np.allclose(
+        torch.testing.assert_close(
             expected_scores,
-            SCORES_EFFECTIVE_ORDER[effective_order].mean(axis=1),
+            SCORES_EFFECTIVE_ORDER[effective_order].mean(dim=1),
             atol=0.0005,
+            rtol=1e-4,
         )

@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 from .chrf import MetricChrF
 
@@ -13,14 +13,13 @@ REFERENCES = [
     "this is a test",
     "producţia de zahăr brut se exprimă în zahăr alb;",
 ]
-SCORES = np.array(
+SCORES = torch.Tensor(
     [
         [7.246, 100.0, 3.411],
         [14.493, 23.060, 4.386],
         [14.493, 60.628, 3.411],
         [6.849, 7.224, 46.161],
     ],
-    dtype=np.float32,
 )
 
 
@@ -29,9 +28,16 @@ class TestMetricChrF:
         metric = MetricChrF(MetricChrF.Config())
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):
-                assert np.isclose(SCORES[i, j], metric.score(hyp, ref), atol=0.0005)
+                assert torch.isclose(
+                    SCORES[i, j], torch.tensor(metric.score(hyp, ref)), atol=0.0005
+                )
 
     def test_expected_scores(self):
         metric = MetricChrF(MetricChrF.Config())
         expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
-        assert np.allclose(expected_scores, SCORES.mean(axis=1), atol=0.0005)
+        torch.testing.assert_close(
+            expected_scores,
+            SCORES.mean(dim=1),
+            atol=0.0005,
+            rtol=1e-4,
+        )

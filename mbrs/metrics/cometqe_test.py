@@ -1,5 +1,4 @@
-import numpy as np
-import pytest
+import torch
 
 from .cometqe import MetricCOMETQE
 
@@ -10,18 +9,23 @@ HYPOTHESES = [
     "this is a fest",
     "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
 ]
-SCORES = np.array([0.86415, 0.83704, 0.65335, 0.29771], dtype=np.float32)
+SCORES = torch.Tensor([0.86415, 0.83704, 0.65335, 0.29771])
 
 
-class TestMetricCOMET:
-    def test_score(self, metric_comet_qe: MetricCOMETQE):
+class TestMetricCOMETQE:
+    def test_score(self, metric_cometqe: MetricCOMETQE):
         for i, hyp in enumerate(HYPOTHESES):
-            assert np.isclose(
+            assert torch.isclose(
                 SCORES[i],
-                metric_comet_qe.score(hyp, SOURCE),
+                torch.tensor(metric_cometqe.score(hyp, SOURCE)),
                 atol=0.0005 / 100,
             )
 
-    def test_scores(self, metric_comet_qe: MetricCOMETQE):
-        scores = metric_comet_qe.scores(HYPOTHESES, SOURCE)
-        assert np.allclose(scores, SCORES, atol=0.0005 / 100)
+    def test_scores(self, metric_cometqe: MetricCOMETQE):
+        scores = metric_cometqe.scores(HYPOTHESES, SOURCE)
+        torch.testing.assert_close(
+            scores,
+            SCORES,
+            atol=0.0005 / 100,
+            rtol=1e-6,
+        )

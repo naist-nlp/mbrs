@@ -9,5 +9,5 @@ def metric_comet():
 
 
 @pytest.fixture(scope="session")
-def metric_comet_qe():
+def metric_cometqe():
     return MetricCOMETQE(MetricCOMETQE.Config())

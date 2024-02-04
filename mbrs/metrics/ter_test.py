@@ -1,5 +1,4 @@
-import numpy as np
-import pytest
+import torch
 
 from .ter import MetricTER
 
@@ -14,14 +13,13 @@ REFERENCES = [
     "this is a test",
     "producţia de zahăr brut se exprimă în zahăr alb;",
 ]
-SCORES = np.array(
+SCORES = torch.Tensor(
     [
         [400.0, 0.0, 100.0],
         [200.0, 75.0, 100.0],
         [400.0, 25.0, 100.0],
         [1300.0, 325.0, 100.0],
     ],
-    dtype=np.float32,
 )
 
 
@@ -30,9 +28,16 @@ class TestMetricTER:
         metric = MetricTER(MetricTER.Config())
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):
-                assert np.isclose(SCORES[i, j], metric.score(hyp, ref), atol=0.0005)
+                assert torch.isclose(
+                    SCORES[i, j], torch.tensor(metric.score(hyp, ref)), atol=0.0005
+                )
 
     def test_expected_scores(self):
         metric = MetricTER(MetricTER.Config())
         expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
-        assert np.allclose(expected_scores, SCORES.mean(axis=1), atol=0.0005)
+        torch.testing.assert_close(
+            expected_scores,
+            SCORES.mean(dim=1),
+            atol=0.0005,
+            rtol=1e-4,
+        )

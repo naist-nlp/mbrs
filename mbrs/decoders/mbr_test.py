@@ -1,5 +1,5 @@
-import numpy as np
 import pytest
+import torch
 
 from mbrs.metrics import get_metric
 
@@ -27,8 +27,8 @@ BEST_SENTENCES = [
 ]
 
 SCORES = {
-    "bleu": np.array([52.697, 50.0, 100.0, 8.493], dtype=np.float32),
-    "ter": np.array([50.000, 50.000, 0.000, 100.000], dtype=np.float32),
+    "bleu": torch.Tensor([52.697, 50.0, 100.0, 8.493]),
+    "ter": torch.Tensor([50.000, 50.000, 0.000, 100.000]),
 }
 
 
@@ -41,8 +41,9 @@ class TestDecoderMBR:
             output = decoder.decode(hyps, refs, nbest=1)
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
-            assert np.allclose(
-                np.array(output.score[0], dtype=np.float32),
+            torch.testing.assert_close(
+                torch.tensor(output.score[0]),
                 SCORES[metric_type][i],
                 atol=0.0005,
+                rtol=1e-4,
             )
