@@ -47,7 +47,7 @@ class TestDecoderCBMBR:
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
             assert torch.isclose(
-                torch.Tensor(output.score[0]),
+                torch.tensor(output.score[0]),
                 SCORES[i],
                 atol=0.0005 / 100,
             )

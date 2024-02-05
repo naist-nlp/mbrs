@@ -56,7 +56,9 @@ class TestKmeans:
     def test_init_kmeanspp(self):
         x = torch.rand(N, D)
         kmeans = Kmeans(C, D, kmeanspp=True)
-        centroids = kmeans.init_kmeanspp(x)
+        rng = torch.Generator(x.device)
+        rng = rng.manual_seed(0)
+        centroids = kmeans.init_kmeanspp(x, rng)
         assert is_equal_shape(centroids, [C, D])
 
     def test_assign(self):

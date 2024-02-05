@@ -1,7 +1,7 @@
 from typing import Tuple
 
 import torch
-from torch import Tensor
+from torch import Generator, Tensor
 
 
 class Kmeans:
@@ -60,23 +60,26 @@ class Kmeans:
                 new_centroids[k] = x[assigns == k].mean(dim=0)
         return new_centroids
 
-    def init_kmeanspp(self, x: Tensor) -> Tensor:
+    def init_kmeanspp(self, x: Tensor, rng: Generator) -> Tensor:
         """Initializes the centroids via k-means++.
 
         Args:
             x (Tensor): Input vectors of shape `(n, dim)`.
+            rng (Generator): Random number generator.
 
         Returns:
             Tensor: Centroid vectors obtained using k-means++.
         """
-        centroids = x[torch.randint(x.size(0), size=(1,)), :]
+        centroids = x[
+            torch.randint(x.size(0), size=(1,), generator=rng, device=x.device), :
+        ]
         for _ in range(self.ncentroids - 1):
             # Nc x N
             sqdists = torch.cdist(centroids, x, p=2) ** 2
             assigns = sqdists.argmin(dim=0, keepdim=True)
             neighbor_sqdists = sqdists.gather(dim=0, index=assigns).squeeze(0)
             weights = neighbor_sqdists / neighbor_sqdists.sum()
-            new_centroid = x[torch.multinomial(weights, 1), :]
+            new_centroid = x[torch.multinomial(weights, 1, generator=rng), :]
             centroids = torch.cat([centroids, new_centroid])
         assert list(centroids.shape) == [self.ncentroids, self.dim]
         return centroids
@@ -98,12 +101,16 @@ class Kmeans:
             self.centroids = x.mean(dim=0, keepdim=True)
             return self.centroids, self.assign(x)
 
-        torch.manual_seed(seed)
+        rng = torch.Generator(x.device)
+        rng = rng.manual_seed(seed)
+
         if self.kmeanspp:
-            self.centroids = self.init_kmeanspp(x)
+            self.centroids = self.init_kmeanspp(x, rng)
         else:
             self.centroids = x[
-                torch.randperm(x.size(0), device=x.device)[: self.ncentroids]
+                torch.randperm(x.size(0), generator=rng, device=x.device)[
+                    : self.ncentroids
+                ]
             ]
         assigns = x.new_full((x.size(0),), fill_value=-1)
         iter_cnt = 0
