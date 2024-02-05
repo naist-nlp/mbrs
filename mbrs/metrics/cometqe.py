@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import torch
 from comet import download_model, load_from_checkpoint
+from transformers import BatchEncoding
 
 from . import MetricReferenceless, register
 
@@ -67,5 +68,11 @@ class MetricCOMETQE(MetricReferenceless):
             torch.Tensor: The scores of hypotheses.
         """
         data = [{"src": source, "mt": hyp} for hyp in hypotheses]
-        model_output = self.scorer.predict(data, batch_size=self.cfg.batch_size, gpus=1)
-        return torch.Tensor(model_output.scores).view(len(hypotheses))
+        scores = []
+        for i in range(0, len(data), self.cfg.batch_size):
+            batch = BatchEncoding(
+                self.scorer.prepare_for_inference(data[i : i + self.cfg.batch_size])[0]
+            ).to(self.scorer.device)
+            model_output = self.scorer.predict_step((batch,))
+            scores.append(model_output.scores.view(len(hypotheses)))
+        return torch.cat(scores)

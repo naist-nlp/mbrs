@@ -25,7 +25,7 @@ class TestMetricCOMETQE:
         scores = metric_cometqe.scores(HYPOTHESES, SOURCE)
         torch.testing.assert_close(
             scores,
-            SCORES,
+            SCORES.to(metric_cometqe.device),
             atol=0.0005 / 100,
             rtol=1e-6,
         )

@@ -34,11 +34,11 @@ class TestMetricCOMET:
                     atol=0.0005 / 100,
                 )
 
-    def test_expected_score(self, metric_comet: MetricCOMET):
+    def test_expected_scores(self, metric_comet: MetricCOMET):
         expected_scores = metric_comet.expected_scores(HYPOTHESES, REFERENCES, SOURCE)
         torch.testing.assert_close(
             expected_scores,
-            SCORES.mean(dim=1),
+            SCORES.mean(dim=1).to(metric_comet.device),
             atol=0.0005 / 100,
             rtol=1e-6,
         )

@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 import pytest
 
 from mbrs.metrics.comet import MetricCOMET
@@ -31,7 +31,7 @@ BEST_SENTENCES = [
     "this is a test",
     "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
 ]
-SCORES = np.array([0.88974, 0.76127, 0.99257, 0.78060], dtype=np.float32)
+SCORES = torch.Tensor([0.88974, 0.76127, 0.99257, 0.78060])
 
 NCENTROIDS = 2
 
@@ -46,8 +46,8 @@ class TestDecoderCBMBR:
             output = decoder.decode(hyps, refs, SOURCE[i], nbest=1)
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
-            assert np.allclose(
-                np.array(output.score[0], dtype=np.float32),
+            assert torch.isclose(
+                torch.Tensor(output.score[0]),
                 SCORES[i],
                 atol=0.0005 / 100,
             )
