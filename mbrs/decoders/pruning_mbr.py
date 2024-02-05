@@ -73,6 +73,7 @@ class DecoderPruningMBR(DecoderMBR):
         if isinstance(self.metric, MetricCacheable):
             source_ir = self.metric.encode([source]) if source is not None else None
             hypotheses_ir = self.metric.encode(hypotheses)
+            references_ir = hypotheses_ir if hypotheses == references else None
 
         # Algorithm 1 in the paper.
         prev_r = 0
@@ -83,9 +84,14 @@ class DecoderPruningMBR(DecoderMBR):
 
             # Equation 5 and Algorithm 2 in the paper.
             if isinstance(self.metric, MetricCacheable):
-                references_ir = self.metric.encode(references[prev_r:r])
                 pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores_from_ir(
-                    hypotheses_ir, references_ir, source_ir
+                    hypotheses_ir,
+                    (
+                        references_ir[prev_r:r]
+                        if references_ir is not None
+                        else self.metric.encode(references[prev_r:r])
+                    ),
+                    source_ir,
                 )
             else:
                 pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores(

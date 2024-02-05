@@ -10,7 +10,6 @@ class Kmeans:
     Args:
         ncentroids (int): The number of centroids.
         dim (int): The dimension size of centroids.
-        metric (Metric): Distance metric function.
         kmeanspp (bool): Use k-means++ for centroid intialization.
     """
 

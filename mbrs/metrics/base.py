@@ -208,7 +208,9 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
               of hypotheses and `R` is the number of references.
         """
         hypotheses_ir = self.encode(hypotheses)
-        references_ir = self.encode(references)
+        references_ir = (
+            self.encode(references) if hypotheses != references else hypotheses_ir
+        )
         source_ir = self.encode([source]) if source is not None else None
         return self.pairwise_scores_from_ir(hypotheses_ir, references_ir, source_ir)
 

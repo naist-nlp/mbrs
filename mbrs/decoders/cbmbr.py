@@ -61,7 +61,11 @@ class DecoderCBMBR(DecoderMBR):
         assert isinstance(self.metric, MetricCacheable)
 
         hypotheses_ir = self.metric.encode(hypotheses)
-        references_ir = self.metric.encode(references)
+        references_ir = (
+            self.metric.encode(references)
+            if hypotheses != references
+            else hypotheses_ir
+        )
         source_ir = self.metric.encode([source]) if source is not None else None
         kmeans = Kmeans(
             min(self.cfg.ncentroids, len(references)),
