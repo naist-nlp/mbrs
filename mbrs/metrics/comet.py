@@ -62,9 +62,10 @@ class MetricCOMET(MetricCacheable):
         ]
         embeds = []
         for batch in batches:
-            embeds.append(
-                self.scorer.get_sentence_embedding(**batch.to(self.scorer.device))
-            )
+            emb = self.scorer.get_sentence_embedding(**batch.to(self.scorer.device))
+            if self.cfg.float16:
+                emb = emb.half()
+            embeds.append(emb)
         embeds = torch.vstack(embeds)
         return embeds
 

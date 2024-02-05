@@ -9,7 +9,7 @@ from transformers import BatchEncoding
 from . import MetricReferenceless, register
 
 
-@register("comet_qe")
+@register("cometqe")
 class MetricCOMETQE(MetricReferenceless):
     """COMET-QE metric class."""
 

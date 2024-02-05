@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, Namespace
+from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType, Namespace
 
 from tqdm import tqdm
 
-from mbrs import registry
+from mbrs import registry, utils
 from mbrs.decoders import DecoderReferenceBased, DecoderReferenceless, get_decoder
 from mbrs.metrics import Metric, get_metric
 
@@ -14,7 +14,10 @@ def parse_args() -> Namespace:
     # fmt: off
     parser.add_argument("hypotheses", help="Hypotheses file.")
     parser.add_argument("--source", "-s", help="Source file.")
-    parser.add_argument("--num-candidates", "-n", type=int,
+    parser.add_argument("--output", "-o", action="store",
+                        default="-", type=FileType("w"),
+                        help="Output file.")
+    parser.add_argument("--num-candidates", "-n", type=int, required=True,
                         help="Number of candidates.")
     parser.add_argument("--decoder", "-d", type=str, default="mbr",
                         choices=registry.get_registry("decoder").keys(),
@@ -44,7 +47,7 @@ def main(args: Namespace) -> None:
         hypotheses = f.readlines()
 
     metric_type = get_metric(args.metric)
-    if args.metric == "comet" or args.metric == "comet_qe":
+    if args.metric == "comet" or args.metric == "cometqe":
         metric_cfg = metric_type.Config(batch_size=args.batch_size, float16=args.fp16)
     else:
         metric_cfg = metric_type.Config()
@@ -58,20 +61,28 @@ def main(args: Namespace) -> None:
     num_cands = args.num_candidates
     num_sents = len(hypotheses) // args.num_candidates
     assert num_sents * num_cands == len(hypotheses)
+
+    stopwatch = utils.Stopwatch()
+
     if isinstance(decoder, DecoderReferenceless):
         for i in tqdm(range(num_sents)):
             src = sources[i].strip()
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
-            output = decoder.decode(hyps, src, args.nbest)
+            with stopwatch.measure():
+                output = decoder.decode(hyps, src, args.nbest)
             for sent in output.sentence:
-                print(sent)
+                print(sent, file=args.output)
     else:
         for i in tqdm(range(num_sents)):
             src = sources[i].strip() if sources is not None else None
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
-            output = decoder.decode(hyps, hyps, src, args.nbest)
+            with stopwatch.measure():
+                output = decoder.decode(hyps, hyps, src, args.nbest)
             for sent in output.sentence:
-                print(sent)
+                print(sent, file=args.output)
+
+    print(f"Total: {stopwatch.total:.1f} sec")
+    print(f"Average: {stopwatch.total * 1000 / num_sents:.1f} msec")
 
 
 def cli_main():

@@ -35,8 +35,8 @@ class DecoderCBMBR(DecoderMBR):
         """
 
         ncentroids: int = 8
-        niter: int = 3
-        kmeanspp: bool = False
+        niter: int = 1
+        kmeanspp: bool = True
         seed: int = 0
 
     def decode(
