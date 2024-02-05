@@ -40,18 +40,18 @@ class MetricBase(abc.ABC):
         values, indices = torch.topk(x, k=min(k, len(x)), largest=self.HIGHER_IS_BETTER)
         return values.tolist(), indices.tolist()
 
-    def argbest(self, x: Tensor) -> int:
+    def argbest(self, x: Tensor) -> Tensor:
         """Return the index of the best element.
 
         Args:
             x (Tensor): Input 1-D array.
 
         Returns:
-            int: The best index.
+            Tensor: A scalar tensor of the best index.
         """
         if self.HIGHER_IS_BETTER:
-            return int(torch.argmax(x))
-        return int(torch.argmin(x))
+            return torch.argmax(x)
+        return torch.argmin(x)
 
 
 class Metric(MetricBase, metaclass=abc.ABCMeta):
