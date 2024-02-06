@@ -69,15 +69,15 @@ class DecoderPruningMBR(DecoderMBR):
         orig_indices = torch.arange(H, device=self.metric.device)
 
         if isinstance(self.metric, MetricCacheable):
+            with timer.measure("encode/hypotheses"):
+                hypotheses_ir = self.metric.encode(hypotheses)
+            with timer.measure("encode/references"):
+                references_ir = hypotheses_ir if hypotheses == references else None
             if source is None:
                 source_ir = None
             else:
                 with timer.measure("encode/source"):
                     source_ir = self.metric.encode([source])
-            with timer.measure("encode/hypotheses"):
-                hypotheses_ir = self.metric.encode(hypotheses)
-            with timer.measure("encode/references"):
-                references_ir = hypotheses_ir if hypotheses == references else None
 
         with timer.measure("pruning_mbr"):
             # Algorithm 1 in the paper.
