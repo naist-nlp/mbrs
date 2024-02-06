@@ -46,7 +46,7 @@ class TestStopwatch:
             for _ in range(10):
                 with timer():
                     t += 1.0
-        assert timer.elpased_time == 20.0
+        assert timer.elpased_time == 10.0
 
     def test_ncalls(self, monkeypatch: pytest.MonkeyPatch):
         t = 0.0

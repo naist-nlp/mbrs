@@ -64,8 +64,10 @@ class Stopwatch:
             yield self
         finally:
             # Treat nest calling
-            self._acc_time = _acc_time + time.perf_counter() - start
-            self._acc_ncalls = _acc_ncalls + self._delta_ncalls
+            if _acc_time == self._acc_time:
+                self._acc_time = _acc_time + time.perf_counter() - start
+            if _acc_ncalls == self._acc_ncalls:
+                self._acc_ncalls = _acc_ncalls + self._delta_ncalls
 
     def set_delta_ncalls(self, delta: int = 1):
         """Set delta for counting the number of calls."""
