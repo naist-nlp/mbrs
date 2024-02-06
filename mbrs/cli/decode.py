@@ -4,7 +4,7 @@ from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType, Na
 
 from tqdm import tqdm
 
-from mbrs import registry, utils
+from mbrs import registry, timer
 from mbrs.decoders import DecoderReferenceBased, DecoderReferenceless, get_decoder
 from mbrs.metrics import Metric, get_metric
 
@@ -62,13 +62,11 @@ def main(args: Namespace) -> None:
     num_sents = len(hypotheses) // args.num_candidates
     assert num_sents * num_cands == len(hypotheses)
 
-    stopwatch = utils.Stopwatch()
-
     if isinstance(decoder, DecoderReferenceless):
         for i in tqdm(range(num_sents)):
             src = sources[i].strip()
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
-            with stopwatch.measure():
+            with timer.measure("total"):
                 output = decoder.decode(hyps, src, args.nbest)
             for sent in output.sentence:
                 print(sent, file=args.output)
@@ -76,13 +74,16 @@ def main(args: Namespace) -> None:
         for i in tqdm(range(num_sents)):
             src = sources[i].strip() if sources is not None else None
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
-            with stopwatch.measure():
+            with timer.measure("total"):
                 output = decoder.decode(hyps, hyps, src, args.nbest)
             for sent in output.sentence:
                 print(sent, file=args.output)
 
-    print(f"Total: {stopwatch.total:.1f} sec")
-    print(f"Average: {stopwatch.total * 1000 / num_sents:.1f} msec")
+    statistics = timer.aggregate().result()
+    keys = ["name", "elapsed_time", "ncalls", "average_time"]
+    print("\t".join(keys))
+    for stat in statistics:
+        print("\t".join([str(stat[k]) for k in keys]))
 
 
 def cli_main():

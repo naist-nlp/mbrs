@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from mbrs  import timer
+
 from . import DecoderReferenceBased, register
 
 

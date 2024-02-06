@@ -71,7 +71,9 @@ class MetricCOMETQE(MetricReferenceless):
         scores = []
         for i in range(0, len(data), self.cfg.batch_size):
             batch = BatchEncoding(
-                self.scorer.prepare_for_inference(data[i : i + self.cfg.batch_size])[0]
+                self.scorer.prepare_for_inference(
+                    data[i : i + self.cfg.batch_size]
+                )[0]
             ).to(self.scorer.device)
             model_output = self.scorer.predict_step((batch,))
             scores.append(model_output.scores.view(len(hypotheses)))

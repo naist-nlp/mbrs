@@ -5,6 +5,7 @@ from typing import Optional
 
 import torch
 
+from mbrs import timer
 from mbrs.metrics import Metric, MetricCacheable
 
 from . import register
@@ -22,9 +23,6 @@ class DecoderPruningMBR(DecoderMBR):
     """
 
     cfg: Config
-
-    def __init__(self, cfg: DecoderPruningMBR.Config, metric: Metric) -> None:
-        super().__init__(cfg, metric)
 
     @dataclass
     class Config(DecoderMBR.Config):
@@ -71,63 +69,73 @@ class DecoderPruningMBR(DecoderMBR):
         orig_indices = torch.arange(H, device=self.metric.device)
 
         if isinstance(self.metric, MetricCacheable):
-            source_ir = self.metric.encode([source]) if source is not None else None
-            hypotheses_ir = self.metric.encode(hypotheses)
-            references_ir = hypotheses_ir if hypotheses == references else None
-
-        # Algorithm 1 in the paper.
-        prev_r = 0
-        for t, r in enumerate(self.cfg.sampling_scheduler):
-            r = min(r, len(references))
-            if r <= prev_r:
-                break
-
-            # Equation 5 and Algorithm 2 in the paper.
-            if isinstance(self.metric, MetricCacheable):
-                pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores_from_ir(
-                    hypotheses_ir,
-                    (
-                        references_ir[prev_r:r]
-                        if references_ir is not None
-                        else self.metric.encode(references[prev_r:r])
-                    ),
-                    source_ir,
-                )
+            if source is None:
+                source_ir = None
             else:
-                pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores(
-                    hypotheses, references[prev_r:r], source
-                )
-            expected_scores = pairwise_scores.mean(dim=-1)
-            current_best_idx = self.metric.argbest(expected_scores)
-            sample_indices = torch.randint(
-                r,
-                size=(self.cfg.num_bootstrap_samples, r),
-                device=self.metric.device,
-                generator=rng,
-            )
-            bootstrap_expected_scores = pairwise_scores[:, sample_indices].mean(dim=-1)
+                with timer.measure("encode/source"):
+                    source_ir = self.metric.encode([source])
+            with timer.measure("encode/hypotheses"):
+                hypotheses_ir = self.metric.encode(hypotheses)
+            with timer.measure("encode/references"):
+                references_ir = hypotheses_ir if hypotheses == references else None
 
-            win_rates = (
-                (
-                    bootstrap_expected_scores
-                    >= bootstrap_expected_scores[current_best_idx]
-                )
-                .float()
-                .mean(dim=1)
-            )
-            winners = (win_rates > 1 - self.cfg.alpha).nonzero(as_tuple=True)[0]
-            num_winners = len(winners)
-            if num_winners >= nbest:
+        with timer.measure("pruning_mbr"):
+            # Algorithm 1 in the paper.
+            prev_r = 0
+            for t, r in enumerate(self.cfg.sampling_scheduler):
+                r = min(r, len(references))
+                if r <= prev_r:
+                    break
+
+                # Equation 5 and Algorithm 2 in the paper.
                 if isinstance(self.metric, MetricCacheable):
-                    hypotheses_ir = hypotheses_ir.index_select(0, winners)
+                    pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores_from_ir(
+                        hypotheses_ir,
+                        (
+                            references_ir[prev_r:r]
+                            if references_ir is not None
+                            else self.metric.encode(references[prev_r:r])
+                        ),
+                        source_ir,
+                    )
                 else:
-                    hypotheses = [hypotheses[i] for i in winners]
-                pairwise_scores = pairwise_scores[winners]
-                orig_indices = orig_indices[winners]
-                prev_r = r
-            else:
-                break
-        expected_scores = pairwise_scores[:, :prev_r].mean(dim=1)
+                    pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores(
+                        hypotheses, references[prev_r:r], source
+                    )
+                expected_scores = pairwise_scores.mean(dim=-1)
+                current_best_idx = self.metric.argbest(expected_scores)
+                sample_indices = torch.randint(
+                    r,
+                    size=(self.cfg.num_bootstrap_samples, r),
+                    device=self.metric.device,
+                    generator=rng,
+                )
+                bootstrap_expected_scores = pairwise_scores[:, sample_indices].mean(
+                    dim=-1
+                )
+
+                win_rates = (
+                    (
+                        bootstrap_expected_scores
+                        >= bootstrap_expected_scores[current_best_idx]
+                    )
+                    .float()
+                    .mean(dim=1)
+                )
+                winners = (win_rates > 1 - self.cfg.alpha).nonzero(as_tuple=True)[0]
+                num_winners = len(winners)
+                if num_winners >= nbest:
+                    if isinstance(self.metric, MetricCacheable):
+                        hypotheses_ir = hypotheses_ir.index_select(0, winners)
+                    else:
+                        hypotheses = [hypotheses[i] for i in winners]
+                    pairwise_scores = pairwise_scores[winners]
+                    orig_indices = orig_indices[winners]
+                    prev_r = r
+                else:
+                    break
+            expected_scores = pairwise_scores[:, :prev_r].mean(dim=1)
+
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return topk_scores, orig_indices[topk_indices].tolist()
 
@@ -152,8 +160,8 @@ class DecoderPruningMBR(DecoderMBR):
 
         if len(hypotheses) <= nbest:
             expected_scores = self.metric.expected_scores(
-                hypotheses, references, source
-            )
+                    hypotheses, references, source
+                )
             topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         else:  # Pruning MBR decoding
             topk_scores, topk_indices = self.decode_pruning(

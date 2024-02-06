@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from . import DecoderReferenceless, register
+from mbrs import timer
 
 
 @register("rerank")
@@ -24,7 +25,8 @@ class DecoderRerank(DecoderReferenceless):
         Returns:
             DecoderRerank.Output: The n-best hypotheses.
         """
-        scores = self.metric.scores(hypotheses, source)
+        with timer.measure("rerank"):
+            scores = self.metric.scores(hypotheses, source)
         topk_scores, topk_indices = self.metric.topk(scores, k=nbest)
         return self.Output(
             idx=topk_indices,

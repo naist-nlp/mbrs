@@ -3,6 +3,8 @@ from typing import Tuple
 import torch
 from torch import Generator, Tensor
 
+from mbrs import timer
+
 
 class Kmeans:
     """k-means clustering implemented in PyTorch.
@@ -83,9 +85,7 @@ class Kmeans:
         assert list(centroids.shape) == [self.ncentroids, self.dim]
         return centroids
 
-    def train(
-        self, x: Tensor, niter: int = 5, seed: int = 0, verbose: bool = False
-    ) -> Tuple[Tensor, Tensor]:
+    def train(self, x: Tensor, niter: int = 5, seed: int = 0) -> Tuple[Tensor, Tensor]:
         """Trains k-means.
 
         Args:
@@ -97,29 +97,28 @@ class Kmeans:
             Tensor: Assigend IDs of shape `(n,)`.
         """
         if self.ncentroids == 1:
-            self.centroids = x.mean(dim=0, keepdim=True)
+            with timer.measure("kmeans/iteration"):
+                self.centroids = x.mean(dim=0, keepdim=True)
             return self.centroids, self.assign(x)
 
-        rng = torch.Generator(x.device)
-        rng = rng.manual_seed(seed)
-
-        if self.kmeanspp:
-            self.centroids = self.init_kmeanspp(x, rng)
-        else:
-            self.centroids = x[
-                torch.randperm(x.size(0), generator=rng, device=x.device)[
-                    : self.ncentroids
+        with timer.measure("kmeans/initialize"):
+            rng = torch.Generator(x.device)
+            rng = rng.manual_seed(seed)
+            if self.kmeanspp:
+                self.centroids = self.init_kmeanspp(x, rng)
+            else:
+                self.centroids = x[
+                    torch.randperm(x.size(0), generator=rng, device=x.device)[
+                        : self.ncentroids
+                    ]
                 ]
-            ]
+
         assigns = x.new_full((x.size(0),), fill_value=-1)
-        iter_cnt = 0
         for i in range(niter):
-            new_assigns = self.assign(x)
-            if torch.equal(new_assigns, assigns):
-                break
-            assigns = new_assigns
-            self.centroids = self.update(x, assigns)
-            iter_cnt += 1
-        if verbose:
-            print(f"[Kmeans] #iter: {iter_cnt}")
+            with timer.measure("kmeans/iteration"):
+                new_assigns = self.assign(x)
+                if torch.equal(new_assigns, assigns):
+                    break
+                assigns = new_assigns
+                self.centroids = self.update(x, assigns)
         return self.centroids, assigns

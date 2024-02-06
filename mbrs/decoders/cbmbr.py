@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from mbrs.metrics import MetricCacheable, MetricCOMET
+from mbrs import timer
+from mbrs.metrics import MetricCacheable
 from mbrs.modules.kmeans import Kmeans
 
 from . import register
@@ -21,9 +22,6 @@ class DecoderCBMBR(DecoderMBR):
 
     cfg: Config
 
-    def __init__(self, cfg: DecoderCBMBR.Config, metric: MetricCacheable) -> None:
-        super().__init__(cfg, metric)
-
     @dataclass
     class Config(DecoderMBR.Config):
         """Configuration for the decoder.
@@ -35,7 +33,7 @@ class DecoderCBMBR(DecoderMBR):
         """
 
         ncentroids: int = 8
-        niter: int = 1
+        niter: int = 3
         kmeanspp: bool = True
         seed: int = 0
 
@@ -60,13 +58,19 @@ class DecoderCBMBR(DecoderMBR):
 
         assert isinstance(self.metric, MetricCacheable)
 
-        hypotheses_ir = self.metric.encode(hypotheses)
-        references_ir = (
-            self.metric.encode(references)
-            if hypotheses != references
-            else hypotheses_ir
-        )
-        source_ir = self.metric.encode([source]) if source is not None else None
+        with timer.measure("encode/hypotheses"):
+            hypotheses_ir = self.metric.encode(hypotheses)
+        with timer.measure("encode/references"):
+            references_ir = (
+                self.metric.encode(references)
+                if hypotheses != references
+                else hypotheses_ir
+            )
+        if source is None:
+            source_ir = None
+        else:
+            with timer.measure("encode/source"):
+                source_ir = self.metric.encode([source])
         kmeans = Kmeans(
             min(self.cfg.ncentroids, len(references)),
             references_ir.size(-1),
@@ -75,11 +79,10 @@ class DecoderCBMBR(DecoderMBR):
         centroids, _ = kmeans.train(
             references_ir, niter=self.cfg.niter, seed=self.cfg.seed
         )
-        expected_scores = (
-            self.metric.pairwise_scores_from_ir(hypotheses_ir, centroids, source_ir)
-            .mean(dim=1)
-            .float()
-        )
+        with timer.measure("expectation"):
+            expected_scores = self.metric.pairwise_scores_from_ir(
+                hypotheses_ir, centroids, source_ir
+            ).mean(dim=-1)
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(
             idx=topk_indices,

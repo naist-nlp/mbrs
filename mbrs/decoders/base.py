@@ -4,11 +4,15 @@ import abc
 from dataclasses import dataclass
 from typing import Optional
 
-from mbrs.metrics.base import Metric, MetricReferenceless
+from mbrs.metrics.base import Metric, MetricBase, MetricReferenceless
 
 
 class DecoderBase(abc.ABC):
     """Decoder base class."""
+
+    def __init__(self, cfg: DecoderBase.Config, metric: MetricBase) -> None:
+        self.cfg = cfg
+        self.metric = metric
 
     @dataclass
     class Config:
@@ -30,9 +34,7 @@ class DecoderBase(abc.ABC):
 class DecoderReferenceBased(DecoderBase, metaclass=abc.ABCMeta):
     """Decoder base class for strategies that use references like MBR decoding."""
 
-    def __init__(self, cfg: DecoderReferenceBased.Config, metric: Metric) -> None:
-        self.cfg = cfg
-        self.metric = metric
+    metric: Metric
 
     @abc.abstractmethod
     def decode(
@@ -58,11 +60,7 @@ class DecoderReferenceBased(DecoderBase, metaclass=abc.ABCMeta):
 class DecoderReferenceless(DecoderBase, metaclass=abc.ABCMeta):
     """Decoder base class for reference-free strategies."""
 
-    def __init__(
-        self, cfg: DecoderReferenceless.Config, metric: MetricReferenceless
-    ) -> None:
-        self.cfg = cfg
-        self.metric = metric
+    metric: MetricReferenceless
 
     @abc.abstractmethod
     def decode(

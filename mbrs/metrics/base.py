@@ -7,6 +7,8 @@ from typing import Optional
 import torch
 from torch import Tensor
 
+from mbrs import timer
+
 
 class MetricBase(abc.ABC):
     """Base metric class."""
@@ -85,9 +87,14 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
-        return Tensor(
-            [[self.score(hyp, ref, source) for ref in references] for hyp in hypotheses]
-        )
+        with timer.measure("score") as t:
+            t.set_delta_ncalls(len(hypotheses) * len(references))
+            return Tensor(
+                [
+                    [self.score(hyp, ref, source) for ref in references]
+                    for hyp in hypotheses
+                ]
+            )
 
     def expected_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
@@ -102,7 +109,8 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
         Returns:
             Tensor: The expected scores for each hypothesis.
         """
-        return self.pairwise_scores(hypotheses, references, source).mean(dim=1)
+        with timer.measure("expectation"):
+            return self.pairwise_scores(hypotheses, references, source).mean(dim=1)
 
 
 class MetricCacheable(Metric, metaclass=abc.ABCMeta):
@@ -186,11 +194,13 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
 
         scores = []
         for i in range(H):
-            scores.append(
-                self.out_proj(
-                    hypotheses_ir[i, :].repeat(R, 1), references_ir, source_ir
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(R)
+                scores.append(
+                    self.out_proj(
+                        hypotheses_ir[i, :].repeat(R, 1), references_ir, source_ir
+                    )
                 )
-            )
         return torch.vstack(scores).float()
 
     def pairwise_scores(
@@ -207,11 +217,17 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
-        hypotheses_ir = self.encode(hypotheses)
-        references_ir = (
-            self.encode(references) if hypotheses != references else hypotheses_ir
-        )
-        source_ir = self.encode([source]) if source is not None else None
+        with timer.measure("encode/hypotheses"):
+            hypotheses_ir = self.encode(hypotheses)
+        with timer.measure("encode/references"):
+            references_ir = (
+                self.encode(references) if hypotheses != references else hypotheses_ir
+            )
+        if source is None:
+            source_ir = None
+        else:
+            with timer.measure("encode/source"):
+                source_ir = self.encode([source])
         return self.pairwise_scores_from_ir(hypotheses_ir, references_ir, source_ir)
 
 
