@@ -15,11 +15,14 @@ def parse_args() -> Namespace:
     # fmt: off
     parser.add_argument("hypotheses", help="Hypotheses file.")
     parser.add_argument("--source", "-s", help="Source file.")
+    parser.add_argument("--references", "-r", help="References file.")
     parser.add_argument("--output", "-o", action="store",
                         default="-", type=FileType("w"),
                         help="Output file.")
-    parser.add_argument("--num-candidates", "-n", type=int, required=True,
+    parser.add_argument("--num-candidates", "--nc", "-n", type=int, required=True,
                         help="Number of candidates.")
+    parser.add_argument("--num-references", "--nr", type=int,
+                        help="Number of references for each sentence.")
     parser.add_argument("--decoder", "-d", type=str, default="mbr",
                         choices=registry.get_registry("decoder").keys(),
                         help="Decoder type.")
@@ -47,12 +50,19 @@ def parse_args() -> Namespace:
 def main(args: Namespace) -> None:
 
     sources = None
-    if getattr(args, "source", None) is not None:
+    if args.source is not None:
         with open(args.source, mode="r") as f:
             sources = f.readlines()
 
     with open(args.hypotheses, mode="r") as f:
         hypotheses = f.readlines()
+
+    references = None
+    if args.references is not None:
+        with open(args.references, mode="r") as f:
+            references = f.readlines()
+    else:
+        references = hypotheses
 
     metric_type = get_metric(args.metric)
     if args.metric == "comet" or args.metric == "cometqe":
@@ -67,6 +77,7 @@ def main(args: Namespace) -> None:
     )
 
     num_cands = args.num_candidates
+    num_refs = args.num_references or num_cands
     num_sents = len(hypotheses) // args.num_candidates
     assert num_sents * num_cands == len(hypotheses)
 
@@ -82,8 +93,9 @@ def main(args: Namespace) -> None:
         for i in tqdm(range(num_sents)):
             src = sources[i].strip() if sources is not None else None
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
+            refs = [r.strip() for r in references[i * num_refs : (i + 1) * num_refs]]
             with timer.measure("total"):
-                output = decoder.decode(hyps, hyps, src, args.nbest)
+                output = decoder.decode(hyps, refs, src, args.nbest)
             for sent in output.sentence:
                 print(sent, file=args.output)
 
