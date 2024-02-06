@@ -219,10 +219,11 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
         """
         with timer.measure("encode/hypotheses"):
             hypotheses_ir = self.encode(hypotheses)
-        with timer.measure("encode/references"):
-            references_ir = (
-                self.encode(references) if hypotheses != references else hypotheses_ir
-            )
+        if hypotheses == references:
+            references_ir = hypotheses_ir
+        else:
+            with timer.measure("encode/references"):
+                references_ir = self.encode(references)
         if source is None:
             source_ir = None
         else:

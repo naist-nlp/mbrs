@@ -60,12 +60,11 @@ class DecoderCBMBR(DecoderMBR):
 
         with timer.measure("encode/hypotheses"):
             hypotheses_ir = self.metric.encode(hypotheses)
-        with timer.measure("encode/references"):
-            references_ir = (
-                self.metric.encode(references)
-                if hypotheses != references
-                else hypotheses_ir
-            )
+        if hypotheses == references:
+            references_ir = hypotheses_ir
+        else:
+            with timer.measure("encode/references"):
+                references_ir = self.metric.encode(references)
         if source is None:
             source_ir = None
         else:

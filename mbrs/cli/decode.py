@@ -100,7 +100,7 @@ def main(args: Namespace) -> None:
                 print(sent, file=args.output)
 
     if not args.quiet:
-        statistics = timer.aggregate().result()
+        statistics = timer.aggregate().result(num_sents)
         table = tabulate(
             statistics, headers="keys", tablefmt=args.report, floatfmt=f".{args.width}f"
         )

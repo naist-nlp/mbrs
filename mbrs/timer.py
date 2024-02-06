@@ -174,17 +174,19 @@ class ProfileTree:
         root.aggregate()
         return root
 
-    def result(self) -> list[dict[str, str | int | float]]:
+    def result(self, nsentences: int = -1) -> list[dict[str, str | int | float]]:
 
         def _result(name: str, node: ProfileTree) -> list[dict[str, str | int | float]]:
-            res = [
-                {
-                    "name": name.strip("/"),
-                    "elapsed_time": node.elapsed_time,
-                    "ncalls": node.ncalls,
-                    "average_time": node.elapsed_time * 1000 / node.ncalls,
-                }
-            ]
+            stat = {
+                "name": name.strip("/"),
+                "acctime": node.elapsed_time,
+                "acccalls": node.ncalls,
+                "ms/call": node.elapsed_time * 1000 / node.ncalls,
+            }
+            if nsentences > 0:
+                stat["ms/sentence"] = node.elapsed_time * 1000 / nsentences
+                stat["calls/sentence"] = node.ncalls / nsentences
+            res = [stat]
             for path, child in node.children.items():
                 res += _result(name + "/" + path, child)
             return res

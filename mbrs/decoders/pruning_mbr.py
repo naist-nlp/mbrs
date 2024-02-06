@@ -71,8 +71,7 @@ class DecoderPruningMBR(DecoderMBR):
         if isinstance(self.metric, MetricCacheable):
             with timer.measure("encode/hypotheses"):
                 hypotheses_ir = self.metric.encode(hypotheses)
-            with timer.measure("encode/references"):
-                references_ir = hypotheses_ir if hypotheses == references else None
+            references_ir = hypotheses_ir if hypotheses == references else None
             if source is None:
                 source_ir = None
             else:
@@ -89,14 +88,14 @@ class DecoderPruningMBR(DecoderMBR):
 
                 # Equation 5 and Algorithm 2 in the paper.
                 if isinstance(self.metric, MetricCacheable):
+                    if references_ir is None:
+                        with timer.measure("encode/references"):
+                            references_ir_t = self.metric.encode(references[prev_r:r])
+                    else:
+                        references_ir_t = references_ir[prev_r:r]
+
                     pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores_from_ir(
-                        hypotheses_ir,
-                        (
-                            references_ir[prev_r:r]
-                            if references_ir is not None
-                            else self.metric.encode(references[prev_r:r])
-                        ),
-                        source_ir,
+                        hypotheses_ir, references_ir_t, source_ir
                     )
                 else:
                     pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores(
@@ -160,8 +159,8 @@ class DecoderPruningMBR(DecoderMBR):
 
         if len(hypotheses) <= nbest:
             expected_scores = self.metric.expected_scores(
-                    hypotheses, references, source
-                )
+                hypotheses, references, source
+            )
             topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         else:  # Pruning MBR decoding
             topk_scores, topk_indices = self.decode_pruning(
