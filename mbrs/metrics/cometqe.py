@@ -76,5 +76,5 @@ class MetricCOMETQE(MetricReferenceless):
                 )[0]
             ).to(self.scorer.device)
             model_output = self.scorer.predict_step((batch,))
-            scores.append(model_output.scores.view(len(hypotheses)))
+            scores.append(model_output.scores)
         return torch.cat(scores)

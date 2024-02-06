@@ -8,6 +8,7 @@ from .cbmbr import DecoderCBMBR
 from .cbmbr_c2f import DecoderCBMBRC2F
 from .mbr import DecoderMBR
 from .pruning_mbr import DecoderPruningMBR
+from .rerank import DecoderRerank
 
 __all__ = [
     "DecoderReferenceBased",
@@ -16,4 +17,5 @@ __all__ = [
     "DecoderCBMBR",
     "DecoderCBMBRC2F",
     "DecoderPruningMBR",
+    "DecoderRerank",
 ]
