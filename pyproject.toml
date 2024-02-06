@@ -14,6 +14,7 @@ sacrebleu = {extras = ["ja"], version = "^2.4.0"}
 torch = "^2.1.2"
 unbabel-comet = "^2.2.1"
 tqdm = "^4.66.1"
+tabulate = "^0.9.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.1.0"

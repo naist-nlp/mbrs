@@ -2,6 +2,7 @@
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType, Namespace
 
+from tabulate import tabulate, tabulate_formats
 from tqdm import tqdm
 
 from mbrs import registry, timer
@@ -27,6 +28,13 @@ def parse_args() -> Namespace:
                         help="Metric type.")
     parser.add_argument("--nbest", type=int, default=1,
                         help="N-best.")
+    parser.add_argument("--quiet", "-q", action="store_true",
+                        help="No report.")
+    parser.add_argument("--report", type=str, default="rounded_outline",
+                        choices=tabulate_formats,
+                        help="Report runtime statistics.")
+    parser.add_argument("--width", "-w", type=int, default=1,
+                        help="Number of digits for values of float point.")
     comet_parser = parser.add_argument_group("COMET")
     comet_parser.add_argument("--batch-size", "-b", type=int, default=64,
                               help="Batch size.")
@@ -79,11 +87,12 @@ def main(args: Namespace) -> None:
             for sent in output.sentence:
                 print(sent, file=args.output)
 
-    statistics = timer.aggregate().result()
-    keys = ["name", "elapsed_time", "ncalls", "average_time"]
-    print("\t".join(keys))
-    for stat in statistics:
-        print("\t".join([str(stat[k]) for k in keys]))
+    if not args.quiet:
+        statistics = timer.aggregate().result()
+        table = tabulate(
+            statistics, headers="keys", tablefmt=args.report, floatfmt=f".{args.width}f"
+        )
+        print(table)
 
 
 def cli_main():
