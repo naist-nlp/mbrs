@@ -48,47 +48,30 @@ def is_equal_shape(
 class TestKmeans:
     @pytest.mark.parametrize("kmeanspp", [False, True])
     def test___init__(self, kmeanspp: bool):
-        kmeans = Kmeans(C, D, kmeanspp)
-        assert kmeans.ncentroids == C
-        assert kmeans.dim == D
+        kmeans = Kmeans(kmeanspp)
         assert kmeans.kmeanspp == kmeanspp
 
     def test_init_kmeanspp(self):
         x = torch.rand(N, D)
-        kmeans = Kmeans(C, D, kmeanspp=True)
+        kmeans = Kmeans(kmeanspp=True)
         rng = torch.Generator(x.device)
         rng = rng.manual_seed(0)
-        centroids = kmeans.init_kmeanspp(x, rng)
+        centroids = kmeans.init_kmeanspp(x, rng, C)
         assert is_equal_shape(centroids, [C, D])
 
     def test_assign(self):
         x = torch.rand(N, D)
         centroids = torch.rand(C, D)
-        kmeans = Kmeans(C, D)
-        kmeans.centroids = centroids
-        assigns = kmeans.assign(x)
+        kmeans = Kmeans()
+        assigns = kmeans.assign(x, centroids)
         expected = ((x[:, None] - centroids[None, :]) ** 2).sum(dim=-1).argmin(dim=1)
         assert torch.equal(assigns, expected)
-
-    def test_update(self):
-        x = torch.rand(N, D)
-        centroids = torch.rand(C, D)
-        assigns = torch.randint(0, C, (N,))
-        kmeans = Kmeans(C, D)
-        kmeans.centroids = centroids
-        new_centroids = kmeans.update(x, assigns)
-        assert torch.allclose(new_centroids, kmeans.centroids)
-
-        expected = torch.zeros(C, D)
-        for c in range(C):
-            expected[c] = x[assigns == c].mean(dim=0)
-        assert torch.allclose(new_centroids, expected)
 
     @pytest.mark.parametrize("kmeanspp", [False, True])
     def test_train(self, kmeanspp: bool):
         torch.manual_seed(0)
-        kmeans = Kmeans(C, D, kmeanspp)
+        kmeans = Kmeans(kmeanspp)
         x = torch.rand(N, D)
-        centroids, assigns = kmeans.train(x)
+        centroids, assigns = kmeans.train(x, C)
         assert is_equal_shape(centroids, [C, D])
         assert is_equal_shape(assigns, [N])

@@ -20,6 +20,10 @@ class DecoderCBMBR(DecoderMBR):
     where k << N.
     """
 
+    def __init__(self, cfg: Config, metric: MetricCacheable) -> None:
+        super().__init__(cfg, metric)
+        self.kmeans = Kmeans(kmeanspp=self.cfg.kmeanspp)
+
     cfg: Config
 
     @dataclass
@@ -70,13 +74,11 @@ class DecoderCBMBR(DecoderMBR):
         else:
             with timer.measure("encode/source"):
                 source_ir = self.metric.encode([source])
-        kmeans = Kmeans(
+        centroids, _ = self.kmeans.train(
+            references_ir,
             min(self.cfg.ncentroids, len(references)),
-            references_ir.size(-1),
-            kmeanspp=self.cfg.kmeanspp,
-        )
-        centroids, _ = kmeans.train(
-            references_ir, niter=self.cfg.niter, seed=self.cfg.seed
+            niter=self.cfg.niter,
+            seed=self.cfg.seed,
         )
         with timer.measure("expectation"):
             expected_scores = self.metric.pairwise_scores_from_ir(
