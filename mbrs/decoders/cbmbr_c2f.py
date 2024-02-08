@@ -87,9 +87,10 @@ class DecoderCBMBRC2F(DecoderCBMBR):
             expected_scores = self.metric.pairwise_scores_from_ir(
                 pruned_hypotheses_ir, centroids, source_ir
             ).mean(dim=-1)
-        topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
+        topk_scores, pruned_topk_indices = self.metric.topk(expected_scores, k=nbest)
+        topk_indices = pruned_hypotheses_id[pruned_topk_indices].tolist()
         return self.Output(
-            idx=pruned_hypotheses_id[topk_indices].tolist(),
+            idx=topk_indices,
             sentence=[hypotheses[idx] for idx in topk_indices],
             score=topk_scores,
         )
