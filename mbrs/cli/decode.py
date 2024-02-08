@@ -43,6 +43,10 @@ def parse_args() -> Namespace:
                               help="Batch size.")
     comet_parser.add_argument("--fp16", action="store_true",
                               help="Use float16.")
+    cbmbr_c2f_parser = parser.add_argument_group("CBMBR-C2F")
+    cbmbr_c2f_parser.add_argument("--ncentroids-hyp", type=int, default=8)
+    cbmbr_c2f_parser.add_argument("--ncentroids-ref-coarse", type=int, default=1)
+    cbmbr_c2f_parser.add_argument("--ncentroids-ref-fine", type=int, default=8)
     # fmt: on
     return parser.parse_args()
 
@@ -72,8 +76,16 @@ def main(args: Namespace) -> None:
     metric: Metric = metric_type(metric_cfg)
 
     decoder_type = get_decoder(args.decoder)
+    if args.decoder == "cbmbr_c2f":
+        metric_cfg = decoder_type.Config(
+            ncentroids_hyp=args.ncentroids_hyp,
+            ncentroids_ref_coarse=args.ncentroids_ref_coarse,
+            ncentroids_ref_fine=args.ncentroids_ref_fine,
+        )
+    else:
+        metric_cfg = decoder_type.Config()
     decoder: DecoderReferenceBased | DecoderReferenceless = decoder_type(
-        decoder_type.Config(), metric
+        metric_cfg, metric
     )
 
     num_cands = args.num_candidates
