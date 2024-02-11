@@ -32,12 +32,14 @@ class DecoderCBMBR(DecoderMBR):
 
         - ncentroids (int): Number of centroids.
         - niter (int): Number of k-means iteration
+        - count_weight: (bool) Weight the scores with counts.
         - kmeanspp (bool): Initialize the centroids using k-means++.
         - seed (bool): Random seed.
         """
 
         ncentroids: int = 8
         niter: int = 3
+        count_weight: bool = False
         kmeanspp: bool = True
         seed: int = 0
 
@@ -74,16 +76,29 @@ class DecoderCBMBR(DecoderMBR):
         else:
             with timer.measure("encode/source"):
                 source_ir = self.metric.encode([source])
-        centroids, _ = self.kmeans.train(
+        centroids, assigns = self.kmeans.train(
             references_ir,
             min(self.cfg.ncentroids, len(references)),
             niter=self.cfg.niter,
             seed=self.cfg.seed,
         )
-        with timer.measure("expectation"):
-            expected_scores = self.metric.pairwise_scores_from_ir(
-                hypotheses_ir, centroids, source_ir
-            ).mean(dim=-1)
+        if self.cfg.count_weight:
+            centroid_ids, counts_nonzero = assigns.unique(return_counts=True)
+            counts = centroid_ids.new_zeros(len(centroids))
+            counts[centroid_ids] = counts_nonzero
+            counts = counts.float()
+            weights = counts / counts.sum()
+            with timer.measure("expectation"):
+                pairwise_scores = self.metric.pairwise_scores_from_ir(
+                    hypotheses_ir, centroids, source_ir
+                )
+                expected_scores = (pairwise_scores * weights[None, :]).mean(dim=-1)
+        else:
+            with timer.measure("expectation"):
+                expected_scores = self.metric.pairwise_scores_from_ir(
+                    hypotheses_ir, centroids, source_ir
+                ).mean(dim=-1)
+
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(
             idx=topk_indices,
