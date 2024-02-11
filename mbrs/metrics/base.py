@@ -190,18 +190,18 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
         H, D = hypotheses_ir.size()
         R, _ = references_ir.size()
         if source_ir is not None:
-            source_ir = source_ir.repeat(R, 1)
+            source_ir = source_ir.repeat(H, 1)
 
         scores = []
-        for i in range(H):
+        for i in range(R):
             with timer.measure("score") as t:
-                t.set_delta_ncalls(R)
+                t.set_delta_ncalls(H)
                 scores.append(
                     self.out_proj(
-                        hypotheses_ir[i, :].repeat(R, 1), references_ir, source_ir
-                    )
+                        hypotheses_ir, references_ir[i, :].repeat(H, 1), source_ir
+                    )[:, None]
                 )
-        return torch.vstack(scores).float()
+        return torch.cat(scores, dim=-1).float()
 
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
