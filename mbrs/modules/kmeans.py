@@ -44,7 +44,7 @@ class Kmeans:
         ]
         for _ in range(ncentroids - 1):
             # Nc x N
-            sqdists = torch.cdist(centroids, x, p=2).float() ** 2
+            sqdists = torch.cdist(centroids.float(), x.float(), p=2) ** 2
             assigns = sqdists.argmin(dim=0, keepdim=True)
             neighbor_sqdists = sqdists.gather(dim=0, index=assigns).squeeze(0)
             weights = neighbor_sqdists / neighbor_sqdists.sum()
