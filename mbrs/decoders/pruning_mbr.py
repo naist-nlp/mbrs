@@ -118,6 +118,7 @@ class DecoderPruningMBR(DecoderMBR):
                         bootstrap_expected_scores
                         >= bootstrap_expected_scores[current_best_idx]
                     )
+                    .float()
                     .mean(dim=1)
                 )
                 winners = (win_rates > 1 - self.cfg.alpha).nonzero(as_tuple=True)[0]
