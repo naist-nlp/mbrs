@@ -2,7 +2,7 @@
 
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType, Namespace
 from itertools import chain
-from typing import Iterable
+from typing import Any, Iterable
 
 import torch
 from tabulate import tabulate, tabulate_formats
@@ -103,13 +103,15 @@ def main(args: Namespace) -> None:
     else:
         generation_kwargs["num_beams"] = max(args.beam_size, args.num_candidates)
 
-    def decode(inputs: list[str], generation_config: GenerationConfig) -> list[str]:
+    def decode(
+        inputs: list[str], num_candidates: int, generation_kwargs: dict[str, Any]
+    ) -> list[str]:
         model_inputs = tokenizer(inputs, return_tensors="pt", padding=True).to(
             device=model.device
         )
         with timer.measure("generate"):
             model_outputs = model.generate(
-                **model_inputs, generation_config=generation_config
+                **model_inputs, **generation_kwargs, num_return_sequences=num_candidates
             )
         return tokenizer.batch_decode(model_outputs, skip_special_tokens=True)
 
@@ -118,20 +120,12 @@ def main(args: Namespace) -> None:
             not generation_kwargs.get("do_sample", False)
             or generation_kwargs.get("num_beams", 1) != 1
         ):
-            generation_config = GenerationConfig(
-                num_return_sequences=args.num_candidates,
-                **generation_kwargs,
-            )
-            return decode(inputs, generation_config)
+            return decode(inputs, args.num_candidates, generation_kwargs)
         else:
             outputs: list[list[str]] = [[] for _ in range(args.batch_size)]
             for n in range(0, args.num_candidates, args.sampling_size):
                 sampling_size = min(args.sampling_size, args.num_candidates - n)
-                generation_config = GenerationConfig(
-                    num_return_sequences=sampling_size,
-                    **generation_kwargs,
-                )
-                samples = decode(inputs, generation_config)
+                samples = decode(inputs, sampling_size, generation_kwargs)
                 for i in range(args.batch_size):
                     outputs[i] += samples[i * sampling_size : (i + 1) * sampling_size]
             return list(chain.from_iterable(outputs))
