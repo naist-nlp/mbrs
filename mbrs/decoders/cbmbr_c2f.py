@@ -41,7 +41,8 @@ class DecoderCBMBRC2F(DecoderCBMBR):
         ncentroids_hyp: int = 8
         ncentroids_ref_coarse: int = 1
         ncentroids_ref_fine: int = 8
-        niter: int = 3
+        niter: int = 1
+        nprobe: int = 4
         kmeanspp: bool = True
         seed: int = 0
 
@@ -126,13 +127,13 @@ class DecoderCBMBRC2F(DecoderCBMBR):
             num_pruned_hypotheses = 0
             pruned_hypotheses_irs = []
             pruned_hypotheses_ids = []
-            for k in best_cluster_order:
+            for i, k in enumerate(best_cluster_order):
                 k_mask = hyp_assigns.eq(k)
                 hypotheses_k = hypotheses_ir[k_mask]
                 pruned_hypotheses_irs.append(hypotheses_k)
                 pruned_hypotheses_ids.append(orig_indices[k_mask])
                 num_pruned_hypotheses += len(hypotheses_k)
-                if num_pruned_hypotheses >= nbest:
+                if i >= self.cfg.nprobe and num_pruned_hypotheses >= nbest:
                     break
             pruned_hypotheses_ir = torch.cat(pruned_hypotheses_irs)
             pruned_hypotheses_id = torch.cat(pruned_hypotheses_ids)
