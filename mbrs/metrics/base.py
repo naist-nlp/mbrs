@@ -201,7 +201,7 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
                         hypotheses_ir, references_ir[i, :].repeat(H, 1), source_ir
                     )[:, None]
                 )
-        return torch.cat(scores, dim=-1).float()
+        return torch.cat(scores, dim=-1)
 
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None

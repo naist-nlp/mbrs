@@ -45,7 +45,7 @@ class Kmeans:
         for _ in range(ncentroids - 1):
             # Nc x N
             sqdists = torch.cdist(centroids, x, p=2) ** 2
-            neighbor_sqdists = sqdists.min(dim=0).values.clamp(min=1e-9)
+            neighbor_sqdists = sqdists.min(dim=0).values.float().clamp(min=1e-5)
             weights = neighbor_sqdists / neighbor_sqdists.sum()
             new_centroid = x[torch.multinomial(weights, 1, generator=rng), :]
             centroids = torch.cat([centroids, new_centroid])

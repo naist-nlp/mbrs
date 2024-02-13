@@ -38,7 +38,7 @@ class MetricCOMET(MetricCacheable):
         if not cfg.cpu and torch.cuda.is_available():
             self.scorer = self.scorer.cuda()
             if cfg.float16:
-                self.scorer.encoder = self.scorer.encoder.half()
+                self.scorer = self.scorer.half()
 
     @property
     def device(self) -> torch.device:
@@ -63,9 +63,13 @@ class MetricCOMET(MetricCacheable):
         embeds = []
         for batch in batches:
             emb = self.scorer.get_sentence_embedding(**batch.to(self.scorer.device))
+            if self.cfg.float16:
+                emb = emb.half()
+            else:
+                emb = emb.float()
             embeds.append(emb)
         embeds = torch.vstack(embeds)
-        return embeds.float()
+        return embeds
 
     def out_proj(
         self, hypotheses_ir: Tensor, references_ir: Tensor, source_ir: Tensor
