@@ -69,6 +69,8 @@ class Kmeans:
             with timer.measure("kmeans/iteration"):
                 centroids = x.mean(dim=0, keepdim=True)
             return centroids, self.assign(x, centroids)
+        elif x.size(0) <= ncentroids:
+            return x, torch.arange(x.size(0), device=x.device)
 
         with timer.measure("kmeans/initialize"):
             rng = torch.Generator(x.device)
