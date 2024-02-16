@@ -4,6 +4,8 @@ import logging
 import os
 import sys
 
+from mbrs.decoders.base import DecoderBase
+
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -12,6 +14,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+import enum
+import json
 from argparse import FileType, Namespace
 from dataclasses import dataclass
 
@@ -29,6 +33,11 @@ simple_parsing.parsing.logger.setLevel(logging.ERROR)
 dataclass_wrapper.logger.setLevel(logging.ERROR)
 
 
+class Format(enum.Enum):
+    plain = "plain"
+    json = "json"
+
+
 @dataclass
 class CommonArguments:
     """Common arguments."""
@@ -42,7 +51,9 @@ class CommonArguments:
     # References file.
     references: str | None = field(default=None, alias=["-r"])
     # Output file.
-    output: FileType("w") = field(default="-", alias=["-o"])
+    output: FileType("w", encoding="utf-8") = field(default="-", alias=["-o"])
+    # Output format.
+    format: Format = choice(Format, default=Format.plain)
     # Number of references for each sentence.
     num_references: int | None = field(default=None)
     # Type of the decoder.
@@ -107,14 +118,34 @@ def main(args: Namespace) -> None:
     num_sents = len(hypotheses) // num_cands
     assert num_sents * num_cands == len(hypotheses)
 
+    def output_results(res: DecoderBase.Output):
+        if args.common.format == Format.plain:
+            for sent in res.sentence:
+                print(sent, file=args.common.output)
+        elif args.common.format == Format.json:
+            for i, (sent, idx, score) in enumerate(
+                zip(res.sentence, res.idx, res.score)
+            ):
+                print(
+                    json.dumps(
+                        {
+                            "rank": i,
+                            "sentence": sent,
+                            "selected_idx": idx,
+                            "expected_score": score,
+                        },
+                        ensure_ascii=False,
+                    ),
+                    file=args.common.output,
+                )
+
     if isinstance(decoder, DecoderReferenceless):
         for i in tqdm(range(num_sents)):
             src = sources[i].strip()
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
             with timer.measure("total"):
                 output = decoder.decode(hyps, src, args.common.nbest)
-            for sent in output.sentence:
-                print(sent, file=args.common.output)
+            output_results(output)
     else:
         for i in tqdm(range(num_sents)):
             src = sources[i].strip() if sources is not None else None
@@ -122,13 +153,15 @@ def main(args: Namespace) -> None:
             refs = [r.strip() for r in references[i * num_refs : (i + 1) * num_refs]]
             with timer.measure("total"):
                 output = decoder.decode(hyps, refs, src, args.common.nbest)
-            for sent in output.sentence:
-                print(sent, file=args.common.output)
+            output_results(output)
 
     if not args.common.quiet:
         statistics = timer.aggregate().result(num_sents)
         table = tabulate(
-            statistics, headers="keys", tablefmt=args.common.report_format, floatfmt=f".{args.common.width}f"
+            statistics,
+            headers="keys",
+            tablefmt=args.common.report_format,
+            floatfmt=f".{args.common.width}f",
         )
         print(table, file=args.common.report)
 
