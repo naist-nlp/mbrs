@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mbrs"
 version = "0.1.0"
-description = ""
+description = "A library for minimum bayes risk (MBR) decoding."
 authors = ["Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>"]
 license = "MIT"
 readme = "README.rst"
@@ -10,7 +10,7 @@ packages = [{include = "mbrs"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 numpy = "^1.26.3"
-sacrebleu = {extras = ["ja"], version = "^2.4.0"}
+sacrebleu = {extras = ["ja", "ko"], version = "^2.4.0"}
 torch = "^2.1.2"
 unbabel-comet = "^2.2.1"
 tqdm = "^4.66.1"
