@@ -19,13 +19,15 @@ class MetricCOMET(MetricCacheable):
 
         - model (str): Model name or path.
         - batch_size (int): Batch size.
-        - float16 (bool): Use float16 for the forward computation.
+        - fp16 (bool): Use float16 for the forward computation.
+        - bf16 (bool): Use bfloat16 for the forward computation.
         - cpu (bool): Use CPU for the forward computation.
         """
 
         model: str = "Unbabel/wmt22-comet-da"
         batch_size: int = 64
-        float16: bool = False
+        fp16: bool = False
+        bf16: bool = False
         cpu: bool = False
 
     def __init__(self, cfg: MetricCOMET.Config):
@@ -37,8 +39,10 @@ class MetricCOMET(MetricCacheable):
 
         if not cfg.cpu and torch.cuda.is_available():
             self.scorer = self.scorer.cuda()
-            if cfg.float16:
+            if cfg.fp16:
                 self.scorer = self.scorer.half()
+            elif cfg.bf16:
+                self.scorer = self.scorer.bfloat16()
 
     @property
     def device(self) -> torch.device:
@@ -63,8 +67,10 @@ class MetricCOMET(MetricCacheable):
         embeds = []
         for batch in batches:
             emb = self.scorer.get_sentence_embedding(**batch.to(self.scorer.device))
-            if self.cfg.float16:
+            if self.cfg.fp16:
                 emb = emb.half()
+            elif self.cfg.bf16:
+                emb = emb.bfloat16()
             else:
                 emb = emb.float()
             embeds.append(emb)

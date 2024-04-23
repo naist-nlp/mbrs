@@ -19,13 +19,15 @@ class MetricCOMETQE(MetricReferenceless):
 
         - model (str): Model name or path.
         - batch_size (int): Batch size.
-        - float16 (bool): Use float16 for the forward computation.
+        - fp16 (bool): Use float16 for the forward computation.
+        - bf16 (bool): Use bfloat16 for the forward computation.
         - cpu (bool): Use CPU for the forward computation.
         """
 
         model: str = "Unbabel/wmt22-cometkiwi-da"
         batch_size: int = 64
-        float16: bool = False
+        fp16: bool = False
+        bf16: bool = False
         cpu: bool = False
 
     def __init__(self, cfg: MetricCOMETQE.Config):
@@ -37,8 +39,10 @@ class MetricCOMETQE(MetricReferenceless):
 
         if not cfg.cpu and torch.cuda.is_available():
             self.scorer = self.scorer.cuda()
-            if cfg.float16:
+            if cfg.fp16:
                 self.scorer = self.scorer.half()
+            elif cfg.bf16:
+                self.scorer = self.scorer.bfloat16()
 
     @property
     def device(self) -> torch.device:

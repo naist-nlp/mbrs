@@ -81,8 +81,8 @@ def parse_args() -> Namespace:
 
     parser = ArgumentParser(add_help=True)
     parser.add_arguments(CommonArguments, "common")
-    parser.add_arguments(metric_type.Config, "metric")
-    parser.add_arguments(decoder_type.Config, "decoder")
+    parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
+    parser.add_arguments(decoder_type.Config, "decoder", prefix="decoder.")
     return parser.parse_args()
 
 

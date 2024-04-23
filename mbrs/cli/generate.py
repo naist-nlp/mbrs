@@ -38,24 +38,24 @@ def parse_args() -> Namespace:
                         help="Output file.")
     parser.add_argument("--model", "-m", type=str, default="facebook/m2m100_418M",
                         help="Model name or path.")
-    parser.add_argument("--num-candidates", "-n", type=int, default=1,
+    parser.add_argument("--num_candidates", "-n", type=int, default=1,
                         help="Number of candidates to be returned.")
     parser.add_argument("--sampling", "-s", type=str, default="",
                         choices=["eps"],
                         help="Sampling method.")
-    parser.add_argument("--beam-size", type=int, default=5,
+    parser.add_argument("--beam_size", type=int, default=5,
                         help="Beam size.")
     parser.add_argument("--epsilon", "--eps", "-e", type=float, default=0.02,
                         help="Cutoff parameter for epsilon sampling.")
-    parser.add_argument("--lang-pair", "-l", type=str, default="en-de",
+    parser.add_argument("--lang_pair", "-l", type=str, default="en-de",
                         help="Language name pair. Some models like M2M100 uses this information.")
-    parser.add_argument("--max-length", type=int, default=1024,
+    parser.add_argument("--max_length", type=int, default=1024,
                         help="Maximum length of an output sentence.")
-    parser.add_argument("--min-length", type=int, default=1,
+    parser.add_argument("--min_length", type=int, default=1,
                         help="Minimum length of an output sentence.")
-    parser.add_argument("--batch-size", "-b", type=int, default=8,
+    parser.add_argument("--batch_size", "-b", type=int, default=8,
                         help="Batch size.")
-    parser.add_argument("--sampling-size", type=int, default=8,
+    parser.add_argument("--sampling_size", type=int, default=8,
                         help="Sampling size in a single inference.")
     parser.add_argument("--fp16", action="store_true",
                         help="Use float16.")
@@ -65,7 +65,7 @@ def parse_args() -> Namespace:
                         help="Force to use CPU.")
     parser.add_argument("--quiet", "-q", action="store_true",
                         help="No report statistics.")
-    parser.add_argument("--report", type=str, default="rounded_outline",
+    parser.add_argument("--report_format", type=str, default="rounded_outline",
                         choices=tabulate_formats,
                         help="Report runtime statistics.")
     parser.add_argument("--width", "-w", type=int, default=1,
@@ -139,7 +139,7 @@ def main(args: Namespace) -> None:
     if not args.quiet:
         statistics = timer.aggregate().result(num_sentences)
         table = tabulate(
-            statistics, headers="keys", tablefmt=args.report, floatfmt=f".{args.width}f"
+            statistics, headers="keys", tablefmt=args.report_format, floatfmt=f".{args.width}f"
         )
         print(table)
 
