@@ -6,7 +6,7 @@ from typing import Optional
 import torch
 
 from mbrs import timer
-from mbrs.metrics import Metric, MetricCacheable
+from mbrs.metrics import MetricCacheable
 
 from . import register
 from .mbr import DecoderMBR

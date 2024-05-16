@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 
 from mbrs.metrics.chrf import MetricChrF
 from mbrs.metrics.comet import MetricCOMET

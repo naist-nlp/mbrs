@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from . import DecoderReferenceless, register
 from mbrs import timer
+
+from . import DecoderReferenceless, register
 
 
 @register("rerank")

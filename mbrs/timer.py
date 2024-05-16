@@ -175,7 +175,6 @@ class ProfileTree:
         return root
 
     def result(self, nsentences: int = -1) -> list[dict[str, str | int | float]]:
-
         def _result(name: str, node: ProfileTree) -> list[dict[str, str | int | float]]:
             stat = {
                 "name": name.strip("/"),

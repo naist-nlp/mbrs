@@ -10,7 +10,6 @@ from tqdm import tqdm
 from transformers import (
     AutoModelForSeq2SeqLM,
     AutoTokenizer,
-    GenerationConfig,
     M2M100ForConditionalGeneration,
 )
 
@@ -75,7 +74,6 @@ def parse_args() -> Namespace:
 
 
 def main(args: Namespace) -> None:
-
     src_lang, tgt_lang = tuple(args.lang_pair.split("-"))
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     model = AutoModelForSeq2SeqLM.from_pretrained(args.model)
@@ -139,7 +137,10 @@ def main(args: Namespace) -> None:
     if not args.quiet:
         statistics = timer.aggregate().result(num_sentences)
         table = tabulate(
-            statistics, headers="keys", tablefmt=args.report_format, floatfmt=f".{args.width}f"
+            statistics,
+            headers="keys",
+            tablefmt=args.report_format,
+            floatfmt=f".{args.width}f",
         )
         print(table)
 
