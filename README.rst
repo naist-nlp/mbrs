@@ -6,11 +6,20 @@ mbrs
 Installation
 ============
 
+We recommend to install from the source.
+
 .. code:: bash
 
     git clone https://github.com/naist-nlp/mbrs.git
     cd mbrs/
     pip install ./
+
+Also, you can install from PyPi:
+
+.. code:: bash
+
+    pip install mbrs
+
 
 Quick start
 ===========
