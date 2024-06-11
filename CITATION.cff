@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+  - family-names: Deguchi
+    given-names: Hiroyuki
+    orcid: https://orcid.org/0000-0003-2127-6607
+title: "mbrs"
+url: "https://github.com/naist-nlp/mbrs"
+date-released: 2024-06-16

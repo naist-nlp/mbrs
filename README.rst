@@ -120,6 +120,20 @@ Specifically, the following methods of MBR decoding are included:
 - Confidence-based pruning `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ 
 - Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_
 
+Citation
+========
+If you use this software, please cite:
+
+.. code:: bibtex
+
+   @software{Deguchi_mbrs_2024,
+     author = {Deguchi, Hiroyuki},
+     month = jun,
+     title = {{mbrs}},
+     url = {https://github.com/naist-nlp/mbrs},
+     year = {2024}
+   }
+
 License
 =======
 This library is mainly developed by `Hiroyuki Deguchi <https://sites.google.com/view/hdeguchi>`_ and published under the MIT-license.
