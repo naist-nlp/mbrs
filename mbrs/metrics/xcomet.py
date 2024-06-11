@@ -39,7 +39,7 @@ class MetricXCOMET(Metric):
 
     @dataclass
     class Config(Metric.Config):
-        """COMET metric configuration.
+        """XCOMET metric configuration.
 
         - model (str): Model name or path.
         - batch_size (int): Batch size.

@@ -107,6 +107,7 @@ Currently, the following metrics are supported:
 - chrF `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_
 - COMET `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_
 - COMETkiwi `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_
+- XCOMET `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
 
 The following decoding methods are implemented:
 
