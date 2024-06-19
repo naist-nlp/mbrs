@@ -76,15 +76,19 @@ class MatrixFactorizationALS:
         N, M = matrix.size()
         # Initialization
         X = (
-            torch.rand((N, self.rank), generator=rng, device=matrix.device)
+            torch.rand(
+                (N, self.rank), generator=rng, device=matrix.device
+            )
             * (N * self.rank) ** -0.5
         )
         Y = (
-            torch.rand((M, self.rank), generator=rng, device=matrix.device)
+            torch.rand(
+                (M, self.rank), generator=rng, device=matrix.device
+            )
             * (M * self.rank) ** -0.5
         )
         if observed_mask is None:
-            observed_mask = matrix.new_ones((N, M))
+            observed_mask = matrix.new_ones((N, M), dtype=torch.bool)
 
         prev_loss = float("1e5")
         for _ in range(niter):

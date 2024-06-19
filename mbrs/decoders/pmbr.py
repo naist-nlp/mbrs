@@ -58,8 +58,7 @@ class DecoderProbabilisticMBR(DecoderMBR):
             source (str, optional): A source.
 
         Returns:
-            torch.Tensor:
-            - list[int]: Top-k indices.
+            torch.Tensor: Expected scores of shape `(H,)`.
         """
         rng = torch.Generator().manual_seed(self.cfg.seed)
         H = len(hypotheses)
@@ -68,11 +67,6 @@ class DecoderProbabilisticMBR(DecoderMBR):
 
         pairwise_scores = torch.zeros((H, R), device=self.metric.device)
         pairwise_sample_indices = torch.randperm(H * R, generator=rng)[:num_ucalcs]
-        observed_mask = pairwise_scores.bool()
-        observed_mask = observed_mask.view(-1)
-        observed_mask[pairwise_sample_indices] = True
-        observed_mask = observed_mask.view(H, R)
-
         hypothesis_sample_indices: list[int] = (pairwise_sample_indices // R).tolist()
         reference_sample_indices: list[int] = (pairwise_sample_indices % R).tolist()
         hypothesis_samples = [hypotheses[i] for i in hypothesis_sample_indices]
@@ -80,9 +74,6 @@ class DecoderProbabilisticMBR(DecoderMBR):
 
         # For COMET-22
         if isinstance(self.metric, MetricCacheable):
-            hypotheses_ir = pairwise_scores.new_zeros((H, self.metric.embed_dim))
-            references_ir = pairwise_scores.new_zeros((R, self.metric.embed_dim))
-
             hypothesis_sample_indices_set = set(hypothesis_sample_indices)
             reference_sample_indices_set = set(reference_sample_indices)
             hypothesis_samples_deduped = [
@@ -92,9 +83,10 @@ class DecoderProbabilisticMBR(DecoderMBR):
                 references[j] for j in reference_sample_indices_set
             ]
             with timer.measure("encode/hypotheses"):
-                hypotheses_ir[list(hypothesis_sample_indices_set)] = self.metric.encode(
-                    hypothesis_samples_deduped
-                )
+                ir = self.metric.encode(hypothesis_samples_deduped)
+                hypotheses_ir = ir.new_zeros((H, self.metric.embed_dim))
+                references_ir = ir.new_zeros((R, self.metric.embed_dim))
+                hypotheses_ir[list(hypothesis_sample_indices_set)] = ir
             with timer.measure("encode/references"):
                 if hypotheses == references:
                     seen_indices = list(
@@ -130,11 +122,15 @@ class DecoderProbabilisticMBR(DecoderMBR):
                         hypotheses_ir[hypothesis_sample_indices[i : i + H]],
                         references_ir[reference_sample_indices[i : i + H]],
                         source_ir,
-                    )
+                    ).float()
             else:
                 pairwise_scores[hypothesis_sample_indices, reference_sample_indices] = (
-                    self.metric.scores(hypothesis_samples, reference_samples, source)
+                    self.metric.scores(
+                        hypothesis_samples, reference_samples, source
+                    ).float()
                 )
+            observed_mask = pairwise_scores.new_zeros((H, R), dtype=torch.bool)
+            observed_mask[hypothesis_sample_indices, reference_sample_indices] = True
 
             # Algorithm 1 in the paper.
             als = MatrixFactorizationALS(
