@@ -45,6 +45,11 @@ class MetricCOMET(MetricCacheable):
                 self.scorer = self.scorer.bfloat16()
 
     @property
+    def embed_dim(self) -> int:
+        """Return the size of embedding dimension."""
+        return self.scorer.encoder.output_units
+
+    @property
     def device(self) -> torch.device:
         """Returns the device of the model."""
         return self.scorer.device
