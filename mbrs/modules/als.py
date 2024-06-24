@@ -35,7 +35,7 @@ class MatrixFactorizationALS:
             observed_mask (Tensor, optional): Valid indices boolean mask of shape `(N, M)`.
 
         Returns:
-            Tensor: Objective loss.
+            float: Objective loss.
         """
         mse_loss = ((observed_mask * (matrix - x @ (y.T))) ** 2).sum()
         l2_regularization_loss = x.norm() ** 2 + y.norm() ** 2
@@ -76,48 +76,35 @@ class MatrixFactorizationALS:
         N, M = matrix.size()
         # Initialization
         X = (
-            torch.rand(
-                (N, self.rank), generator=rng, device=matrix.device
-            )
+            torch.rand((N, self.rank), generator=rng, device=matrix.device)
             * (N * self.rank) ** -0.5
         )
         Y = (
-            torch.rand(
-                (M, self.rank), generator=rng, device=matrix.device
-            )
+            torch.rand((M, self.rank), generator=rng, device=matrix.device)
             * (M * self.rank) ** -0.5
         )
         if observed_mask is None:
             observed_mask = matrix.new_ones((N, M), dtype=torch.bool)
 
+        regularization_term = self.regularization_weight * torch.eye(
+            self.rank, device=matrix.device
+        )
         prev_loss = float("1e5")
         for _ in range(niter):
             with timer.measure("ALS/iteration"):
                 # A: r x r
                 # B: r x N
-                # Solve A @ x.T = b
-                for i in range(N):
-                    A = Y.T @ (
-                        Y * observed_mask[i, :, None]
-                    ) + self.regularization_weight * torch.eye(
-                        self.rank, dtype=Y.dtype, device=Y.device
-                    )
-
-                    b = Y.T @ matrix[i, :]
-                    X[i, :] = LA.solve(A, b)
-
-                # Y_A: r x r
-                # Y_B: r x M
-                # Solve Y_A @ Y.T = Y_B
-                for j in range(M):
-                    A = X.T @ (
-                        X * observed_mask[:, j, None]
-                    ) + self.regularization_weight * torch.eye(
-                        self.rank, dtype=X.dtype, device=X.device
-                    )
-                    b = X.T @ matrix[:, j]
-                    Y[j, :] = LA.solve(A, b)
-
+                # Solve Ax = b
+                X = LA.solve(
+                    Y.T[None, :, :] @ (Y[None, :, :] * observed_mask[:, :, None])
+                    + regularization_term,
+                    matrix @ Y,
+                )
+                Y = LA.solve(
+                    X.T[None, :, :] @ (X[None, :, :] * observed_mask.T[:, :, None])
+                    + regularization_term,
+                    matrix.T @ X,
+                )
                 loss = self.compute_loss(matrix, X, Y, observed_mask=observed_mask)
                 if prev_loss - loss <= tolerance:
                     break
