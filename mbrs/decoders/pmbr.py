@@ -41,7 +41,7 @@ class DecoderProbabilisticMBR(DecoderMBR):
         reduction_factor: float = 8
         regularization_weight: float = 0.1
         rank: int = 8
-        niter: int = 20
+        niter: int = 10
         seed: int = 0
 
     def expected_scores_probabilistic(
@@ -112,38 +112,37 @@ class DecoderProbabilisticMBR(DecoderMBR):
                     source_ir = self.metric.encode([source])
 
         # Algorithm 2 in the paper.
-        with timer.measure("PMBR"):
-            if isinstance(self.metric, MetricCacheable):
-                for i in range(0, len(hypothesis_sample_indices), H):
-                    pairwise_scores[
-                        hypothesis_sample_indices[i : i + H],
-                        reference_sample_indices[i : i + H],
-                    ] = self.metric.scores_from_ir(
-                        hypotheses_ir[hypothesis_sample_indices[i : i + H]],
-                        references_ir[reference_sample_indices[i : i + H]],
-                        source_ir,
-                    ).float()
-            else:
-                pairwise_scores[hypothesis_sample_indices, reference_sample_indices] = (
-                    self.metric.scores(
-                        hypothesis_samples, reference_samples, source
-                    ).float()
-                )
-            observed_mask = pairwise_scores.new_zeros((H, R), dtype=torch.bool)
-            observed_mask[hypothesis_sample_indices, reference_sample_indices] = True
+        if isinstance(self.metric, MetricCacheable):
+            for i in range(0, len(hypothesis_sample_indices), H):
+                pairwise_scores[
+                    hypothesis_sample_indices[i : i + H],
+                    reference_sample_indices[i : i + H],
+                ] = self.metric.scores_from_ir(
+                    hypotheses_ir[hypothesis_sample_indices[i : i + H]],
+                    references_ir[reference_sample_indices[i : i + H]],
+                    source_ir,
+                ).float()
+        else:
+            pairwise_scores[hypothesis_sample_indices, reference_sample_indices] = (
+                self.metric.scores(
+                    hypothesis_samples, reference_samples, source
+                ).float()
+            )
+        observed_mask = pairwise_scores.new_zeros((H, R), dtype=torch.bool)
+        observed_mask[hypothesis_sample_indices, reference_sample_indices] = True
 
-            # Algorithm 1 in the paper.
-            als = MatrixFactorizationALS(
-                regularization_weight=self.cfg.regularization_weight, rank=self.cfg.rank
-            )
-            X, Y = als.factorize(
-                pairwise_scores,
-                observed_mask=observed_mask,
-                niter=self.cfg.niter,
-                seed=self.cfg.seed,
-            )
-            pairwise_scores = X @ Y.T
-            return pairwise_scores.mean(dim=-1)
+        # Algorithm 1 in the paper.
+        als = MatrixFactorizationALS(
+            regularization_weight=self.cfg.regularization_weight, rank=self.cfg.rank
+        )
+        X, Y = als.factorize(
+            pairwise_scores,
+            observed_mask=observed_mask,
+            niter=self.cfg.niter,
+            seed=self.cfg.seed,
+        )
+        pairwise_scores = X @ Y.T
+        return pairwise_scores.mean(dim=-1)
 
     def decode(
         self,

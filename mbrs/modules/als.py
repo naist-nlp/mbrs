@@ -74,7 +74,8 @@ class MatrixFactorizationALS:
         rng = rng.manual_seed(seed)
 
         N, M = matrix.size()
-        # Initialization
+        # Initialization:
+        # Empirically observed the convergence to be much better with the scaled initialization.
         X = (
             torch.rand((N, self.rank), generator=rng, device=matrix.device)
             * (N * self.rank) ** -0.5
