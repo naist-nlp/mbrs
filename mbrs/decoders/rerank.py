@@ -27,7 +27,7 @@ class DecoderRerank(DecoderReferenceless):
             DecoderRerank.Output: The n-best hypotheses.
         """
         with timer.measure("rerank"):
-            scores = self.metric.scores(hypotheses, source)
+            scores = self.metric.scores(hypotheses, source=source)
         topk_scores, topk_indices = self.metric.topk(scores, k=nbest)
         return self.Output(
             idx=topk_indices,

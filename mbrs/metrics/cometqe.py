@@ -4,7 +4,8 @@ from dataclasses import dataclass
 
 import torch
 from comet import download_model, load_from_checkpoint
-from transformers import BatchEncoding
+
+from mbrs import utils
 
 from . import MetricReferenceless, register
 
@@ -38,11 +39,11 @@ class MetricCOMETQE(MetricReferenceless):
             param.requires_grad = False
 
         if not cfg.cpu and torch.cuda.is_available():
-            self.scorer = self.scorer.cuda()
             if cfg.fp16:
                 self.scorer = self.scorer.half()
             elif cfg.bf16:
                 self.scorer = self.scorer.bfloat16()
+            self.scorer = self.scorer.cuda()
 
     @property
     def device(self) -> torch.device:
@@ -74,9 +75,8 @@ class MetricCOMETQE(MetricReferenceless):
         data = [{"src": source, "mt": hyp} for hyp in hypotheses]
         scores = []
         for i in range(0, len(data), self.cfg.batch_size):
-            batch = BatchEncoding(
-                self.scorer.prepare_for_inference(data[i : i + self.cfg.batch_size])[0]
-            ).to(self.scorer.device)
-            model_output = self.scorer.predict_step((batch,))
+            batch = self.scorer.prepare_for_inference(data[i : i + self.cfg.batch_size])
+            batch = utils.to_device(batch, self.device)
+            model_output = self.scorer.predict_step(batch)
             scores.append(model_output.scores)
-        return torch.cat(scores)
+        return torch.cat(scores).view(len(hypotheses))
