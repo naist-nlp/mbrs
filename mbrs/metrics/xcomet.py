@@ -1,34 +1,16 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Optional
 
 import torch
 from comet import download_model, load_from_checkpoint
 from comet.models import XCOMETMetric
 from torch import Tensor
 
-from mbrs import timer
+from mbrs import timer, utils
 
 from . import Metric, register
-
-
-def to_device(sample: Any, device: torch.device):
-    def _to_device(x):
-        if torch.is_tensor(x):
-            return x.to(device=device, non_blocking=True)
-        elif isinstance(x, dict):
-            return {key: _to_device(value) for key, value in x.items()}
-        elif isinstance(x, list):
-            return [_to_device(x) for x in x]
-        elif isinstance(x, tuple):
-            return tuple(_to_device(x) for x in x)
-        elif isinstance(x, set):
-            return {_to_device(x) for x in x}
-        else:
-            return x
-
-    return _to_device(sample)
 
 
 @register("xcomet")
@@ -74,41 +56,52 @@ class MetricXCOMET(Metric):
         return self.scorer.device
 
     def score(
-        self, hypothesis: str, reference: str, source: Optional[str] = None
+        self,
+        hypothesis: str,
+        reference: Optional[str] = None,
+        source: Optional[str] = None,
     ) -> float:
         """Calculate the score of the given hypothesis.
 
         Args:
             hypothesis (str): A hypothesis.
-            reference (str): A reference.
+            reference (str, optional): A reference.
             source (str, optional): A source.
 
         Returns:
             float: The score of the given hypothesis.
         """
-        inputs = {"mt": hypothesis, "ref": reference}
+        inputs = {"mt": hypothesis}
+        if reference is not None:
+            inputs["ref"] = reference
         if source is not None:
             inputs["src"] = source
 
         batch = self.scorer.prepare_for_inference([inputs])
-        batch = to_device(batch, self.device)
+        batch = utils.to_device(batch, self.device)
         model_output = self.scorer.predict_step(batch)
         return model_output.scores.item()
 
     def scores(
-        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+        self,
+        hypotheses: list[str],
+        references: Optional[list[str]] = None,
+        source: Optional[str] = None,
     ) -> Tensor:
         """Calculate the scores of the given hypothesis.
 
         Args:
-            hypotheses (str): N hypotheses.
-            references (str): N references.
+            hypotheses (list[str]): N hypotheses.
+            references (list[str], optional): N references.
             source (str, optional): A source.
 
         Returns:
             Tensor: The N scores of the given hypotheses.
         """
-        inputs = [{"mt": hyp, "ref": ref} for hyp, ref in zip(hypotheses, references)]
+        inputs = [{"mt": hyp} for hyp in hypotheses]
+        if references is not None:
+            for d, ref in zip(inputs, references):
+                d["ref"] = ref
         if source is not None:
             for d in inputs:
                 d["src"] = source
@@ -120,7 +113,7 @@ class MetricXCOMET(Metric):
                 batch = self.scorer.prepare_for_inference(
                     inputs[i : i + self.cfg.batch_size]
                 )
-                batch = to_device(batch, self.device)
+                batch = utils.to_device(batch, self.device)
                 model_output = self.scorer.predict_step(batch)
                 scores.append(model_output.scores)
         return torch.cat(scores).view(len(hypotheses))
@@ -151,7 +144,7 @@ class MetricXCOMET(Metric):
                 batch = self.scorer.prepare_for_inference(
                     data[i : i + self.cfg.batch_size]
                 )
-                batch = to_device(batch, self.device)
+                batch = utils.to_device(batch, self.device)
                 model_output = self.scorer.predict_step(batch)
                 scores.append(model_output.scores)
         return torch.cat(scores).view(len(hypotheses), len(references))
