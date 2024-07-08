@@ -95,6 +95,36 @@ class MetricXCOMET(Metric):
         model_output = self.scorer.predict_step(batch)
         return model_output.scores.item()
 
+    def scores(
+        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+    ) -> Tensor:
+        """Calculate the scores of the given hypothesis.
+
+        Args:
+            hypotheses (str): N hypotheses.
+            references (str): N references.
+            source (str, optional): A source.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        inputs = [{"mt": hyp, "ref": ref} for hyp, ref in zip(hypotheses, references)]
+        if source is not None:
+            for d in inputs:
+                d["src"] = source
+
+        scores = []
+        with timer.measure("score") as t:
+            t.set_delta_ncalls(len(inputs))
+            for i in range(0, len(inputs), self.cfg.batch_size):
+                batch = self.scorer.prepare_for_inference(
+                    inputs[i : i + self.cfg.batch_size]
+                )
+                batch = to_device(batch, self.device)
+                model_output = self.scorer.predict_step(batch)
+                scores.append(model_output.scores)
+        return torch.cat(scores).view(len(hypotheses))
+
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
     ) -> Tensor:

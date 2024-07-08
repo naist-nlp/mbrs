@@ -38,11 +38,16 @@ class MetricCOMET(MetricCacheable):
             param.requires_grad = False
 
         if not cfg.cpu and torch.cuda.is_available():
-            self.scorer = self.scorer.cuda()
             if cfg.fp16:
                 self.scorer = self.scorer.half()
             elif cfg.bf16:
                 self.scorer = self.scorer.bfloat16()
+            self.scorer = self.scorer.cuda()
+
+    @property
+    def embed_dim(self) -> int:
+        """Return the size of embedding dimension."""
+        return self.scorer.encoder.output_units
 
     @property
     def device(self) -> torch.device:

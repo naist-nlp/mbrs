@@ -102,12 +102,12 @@ List of implemented methods
 
 Currently, the following metrics are supported:
 
-- BLEU `(Papineni et al., 2002) <https://aclanthology.org/P02-1040>`_
-- TER `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_
-- chrF `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_
-- COMET `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_
-- COMETkiwi `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_
-- XCOMET `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
+- BLEU: :code:`bleu` `(Papineni et al., 2002) <https://aclanthology.org/P02-1040>`_
+- TER: :code:`ter` `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_
+- chrF: :code:`chrf` `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_
+- COMET: :code:`comet` `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_
+- COMETkiwi: :code:`cometqe` `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_
+- XCOMET: :code:`xcomet` `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
 
 The following decoding methods are implemented:
 
@@ -116,9 +116,10 @@ The following decoding methods are implemented:
 
 Specifically, the following methods of MBR decoding are included:
 
-- Monte Carlo estimation (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
-- Confidence-based pruning `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ 
-- Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_
+- Monte Carlo estimation: :code:`mbr` (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
+- Confidence-based pruning: :code:`pruning_mbr` `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ 
+- Centroid-based MBR: :code:`cbmbr` `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_
+- Probabilistic MBR: :code:`pmbr` `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_
 
 Citation
 ========

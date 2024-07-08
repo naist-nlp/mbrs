@@ -73,6 +73,28 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
             float: The score of the given hypothesis.
         """
 
+    def scores(
+        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+    ) -> Tensor:
+        """Calculate the scores of the given hypotheses.
+
+        Args:
+            hypotheses (str): N hypotheses.
+            references (str): N references.
+            source (str, optional): A source.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        with timer.measure("score") as t:
+            t.set_delta_ncalls(len(hypotheses))
+            return Tensor(
+                [
+                    self.score(hyp, ref, source)
+                    for hyp, ref in zip(hypotheses, references)
+                ]
+            )
+
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
     ) -> Tensor:
@@ -117,6 +139,11 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
     """Base class for cacheable metrics.
 
     This class supports to cache intermediate representations of the encoder."""
+
+    @property
+    @abc.abstractmethod
+    def embed_dim(self) -> int:
+        """Return the size of embedding dimension."""
 
     @abc.abstractmethod
     def encode(self, sentences: list[str]) -> Tensor:
@@ -169,6 +196,49 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
             self.encode([reference]),
             self.encode([source]) if source is not None else None,
         ).item()
+
+    def scores_from_ir(
+        self,
+        hypotheses_ir: Tensor,
+        references_ir: Tensor,
+        source_ir: Optional[Tensor] = None,
+    ) -> Tensor:
+        """Calculate the scores of the given hypotheses from the intermediate representations.
+
+        Args:
+            hypotheses_ir (str): N hypotheses.
+            references_ir (str): N references.
+            source_ir (str, optional): A source.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        H = len(hypotheses_ir)
+        if source_ir is not None:
+            source_ir = source_ir.repeat(H, 1)
+        with timer.measure("score") as t:
+            t.set_delta_ncalls(H)
+            return self.out_proj(hypotheses_ir, references_ir, source_ir)
+
+    def scores(
+        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+    ) -> Tensor:
+        """Calculate the scores of the given hypotheses.
+
+        Args:
+            hypotheses (str): N hypotheses.
+            references (str): N references.
+            source (str, optional): A source.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+
+        return self.scores_from_ir(
+            self.encode(hypotheses),
+            self.encode(references),
+            self.encode([source]) if source is not None else None,
+        )
 
     def pairwise_scores_from_ir(
         self,
