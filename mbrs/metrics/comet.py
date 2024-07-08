@@ -84,16 +84,16 @@ class MetricCOMET(MetricCacheable):
         return embeds
 
     def out_proj(
-        self, hypotheses_ir: Tensor, references_ir: Tensor, source_ir: Tensor
+        self, hypotheses_ir: Tensor, references_ir: Tensor, sources_ir: Tensor
     ) -> Tensor:
         """Forward the output projection layer.
 
         Args:
             hypotheses_ir (Tensor): Intermediate representations of hypotheses.
             references_ir (Tensor): Intermediate representations of references.
-            source_ir (Tensor): Intermediate representations of a source.
+            sources_ir (Tensor): Intermediate representations of sources.
 
         Returns:
             Tensor: N scores.
         """
-        return self.scorer.estimate(source_ir, hypotheses_ir, references_ir)["score"]
+        return self.scorer.estimate(sources_ir, hypotheses_ir, references_ir)["score"]

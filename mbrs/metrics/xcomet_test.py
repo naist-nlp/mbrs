@@ -41,16 +41,16 @@ class TestMetricXCOMET:
     def test_scores(self, metric_xcomet: MetricXCOMET):
         hyps = ["another test", "this is a test", "this is an test"]
         refs = ["another test", "this is a fest", "this is a test"]
-        src = SOURCE
+        srcs = [SOURCE] * 3
 
         torch.testing.assert_close(
-            metric_xcomet.scores(hyps, refs, src).cpu().float(),
+            metric_xcomet.scores(hyps, refs, srcs).cpu().float(),
             torch.FloatTensor([1.00000, 0.90545, 1.00000]),
             atol=0.0005 / 100,
             rtol=1e-6,
         )
         torch.testing.assert_close(
-            metric_xcomet.scores(hyps, source=src).cpu().float(),
+            metric_xcomet.scores(hyps, sources=srcs).cpu().float(),
             torch.FloatTensor([0.99120, 0.99120, 0.99120]),
             atol=0.0005 / 100,
             rtol=1e-6,

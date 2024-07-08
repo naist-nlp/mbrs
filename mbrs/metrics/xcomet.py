@@ -86,14 +86,14 @@ class MetricXCOMET(Metric):
         self,
         hypotheses: list[str],
         references: Optional[list[str]] = None,
-        source: Optional[str] = None,
+        sources: Optional[list[str]] = None,
     ) -> Tensor:
         """Calculate the scores of the given hypothesis.
 
         Args:
             hypotheses (list[str]): N hypotheses.
             references (list[str], optional): N references.
-            source (str, optional): A source.
+            sources (list[str], optional): N sources.
 
         Returns:
             Tensor: The N scores of the given hypotheses.
@@ -102,9 +102,9 @@ class MetricXCOMET(Metric):
         if references is not None:
             for d, ref in zip(inputs, references):
                 d["ref"] = ref
-        if source is not None:
-            for d in inputs:
-                d["src"] = source
+        if sources is not None:
+            for d, src in zip(inputs, sources):
+                d["src"] = src
 
         scores = []
         with timer.measure("score") as t:

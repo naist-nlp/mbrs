@@ -74,26 +74,34 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
         """
 
     def scores(
-        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        sources: Optional[list[str]] = None,
     ) -> Tensor:
         """Calculate the scores of the given hypotheses.
 
         Args:
-            hypotheses (str): N hypotheses.
-            references (str): N references.
-            source (str, optional): A source.
+            hypotheses (list[str]): N hypotheses.
+            references (list[str]): N references.
+            sources (list[str], optional): N sources.
 
         Returns:
             Tensor: The N scores of the given hypotheses.
         """
         with timer.measure("score") as t:
             t.set_delta_ncalls(len(hypotheses))
-            return Tensor(
-                [
-                    self.score(hyp, ref, source)
-                    for hyp, ref in zip(hypotheses, references)
-                ]
-            )
+            if sources is None:
+                return Tensor(
+                    [self.score(hyp, ref) for hyp, ref in zip(hypotheses, references)]
+                )
+            else:
+                return Tensor(
+                    [
+                        self.score(hyp, ref, src)
+                        for hyp, ref, src in zip(hypotheses, references, sources)
+                    ]
+                )
 
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], source: Optional[str] = None
@@ -162,14 +170,14 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
         self,
         hypotheses_ir: Tensor,
         references_ir: Tensor,
-        source_ir: Optional[Tensor] = None,
+        sources_ir: Optional[Tensor] = None,
     ) -> Tensor:
         """Forward the output projection layer.
 
         Args:
             hypotheses_ir (Tensor): Intermediate representations of hypotheses.
             references_ir (Tensor): Intermediate representations of references.
-            source_ir (Tensor, optional): Intermediate representations of a source.
+            sources_ir (Tensor, optional): Intermediate representations of sources.
 
         Returns:
             Tensor: N scores.
@@ -201,34 +209,38 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
         self,
         hypotheses_ir: Tensor,
         references_ir: Tensor,
-        source_ir: Optional[Tensor] = None,
+        sources_ir: Optional[Tensor] = None,
     ) -> Tensor:
         """Calculate the scores of the given hypotheses from the intermediate representations.
 
         Args:
-            hypotheses_ir (str): N hypotheses.
-            references_ir (str): N references.
-            source_ir (str, optional): A source.
+            hypotheses_ir (Tensor): N hypotheses.
+            references_ir (Tensor): N references.
+            sources_ir (Tensor, optional): N sources.
 
         Returns:
             Tensor: The N scores of the given hypotheses.
         """
         H = len(hypotheses_ir)
-        if source_ir is not None:
-            source_ir = source_ir.repeat(H, 1)
         with timer.measure("score") as t:
             t.set_delta_ncalls(H)
-            return self.out_proj(hypotheses_ir, references_ir, source_ir)
+            if sources_ir is None:
+                return self.out_proj(hypotheses_ir, references_ir)
+            else:
+                return self.out_proj(hypotheses_ir, references_ir, sources_ir)
 
     def scores(
-        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        sources: Optional[list[str]] = None,
     ) -> Tensor:
         """Calculate the scores of the given hypotheses.
 
         Args:
-            hypotheses (str): N hypotheses.
-            references (str): N references.
-            source (str, optional): A source.
+            hypotheses (list[str]): N hypotheses.
+            references (list[str]): N references.
+            source (list[str], optional): N sources.
 
         Returns:
             Tensor: The N scores of the given hypotheses.
@@ -237,7 +249,7 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
         return self.scores_from_ir(
             self.encode(hypotheses),
             self.encode(references),
-            self.encode([source]) if source is not None else None,
+            self.encode(sources) if sources is not None else None,
         )
 
     def pairwise_scores_from_ir(
@@ -317,14 +329,14 @@ class MetricReferenceless(MetricBase, metaclass=abc.ABCMeta):
             float: The score of the given hypothesis.
         """
 
-    def scores(self, hypotheses: list[str], source: str) -> Tensor:
+    def scores(self, hypotheses: list[str], sources: list[str]) -> Tensor:
         """Calculate the scores of hypotheses.
 
         Args:
-            hypotheses (list[str]): Hypotheses.
-            source (str): A source.
+            hypotheses (list[str]): N hypotheses.
+            sources (list[str]): N sources.
 
         Returns:
             Tensor: The scores of hypotheses.
         """
-        return Tensor([self.score(hyp, source) for hyp in hypotheses])
+        return Tensor([self.score(hyp, src) for hyp, src in zip(hypotheses, sources)])
