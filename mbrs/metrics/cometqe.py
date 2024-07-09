@@ -80,3 +80,25 @@ class MetricCOMETQE(MetricReferenceless):
             model_output = self.scorer.predict_step(batch)
             scores.append(model_output.scores)
         return torch.cat(scores).view(len(hypotheses))
+
+    def corpus_score(self, hypotheses: list[str], sources: list[str]) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            source (list[str]): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        scores = []
+        for i in range(0, len(hypotheses), self.cfg.batch_size):
+            scores.append(
+                self.scores(
+                    hypotheses[i : i + self.cfg.batch_size],
+                    sources[i : i + self.cfg.batch_size],
+                )
+                .float()
+                .cpu()
+            )
+        return torch.cat(scores).mean().item()

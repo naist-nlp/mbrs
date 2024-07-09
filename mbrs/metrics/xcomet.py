@@ -148,3 +148,32 @@ class MetricXCOMET(Metric):
                 model_output = self.scorer.predict_step(batch)
                 scores.append(model_output.scores)
         return torch.cat(scores).view(len(hypotheses), len(references))
+
+    def corpus_score(
+        self,
+        hypotheses: list[str],
+        references: Optional[list[str]] = None,
+        sources: Optional[list[str]] = None,
+    ) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str], optional): References.
+            sources (list[str], optional): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        scores = []
+        for i in range(0, len(hypotheses), self.cfg.batch_size):
+            scores.append(
+                self.scores(
+                    hypotheses[i : i + self.cfg.batch_size],
+                    references[i : i + self.cfg.batch_size] if references is not None else None,
+                    sources[i : i + self.cfg.batch_size] if sources is not None else None,
+                )
+                .float()
+                .cpu()
+            )
+        return torch.cat(scores).mean().item()

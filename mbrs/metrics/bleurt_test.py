@@ -60,3 +60,11 @@ class TestMetricBLEURT:
             atol=0.0005 / 100,
             rtol=1e-6,
         )
+
+    def test_corpus_score(self, metric_bleurt: MetricBLEURT):
+        hyps = ["another test", "this is a test", "this is an test"]
+        refs = ["another test", "this is a fest", "this is a test"]
+        assert torch.isclose(
+            torch.tensor(metric_bleurt.corpus_score(hyps, refs)),
+            torch.FloatTensor([0.98427, 0.46749, 0.88140]).mean(),
+        )

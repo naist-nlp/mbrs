@@ -59,3 +59,15 @@ class MetricBLEU(Metric):
             float: The score of the given hypothesis.
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
+
+    def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+
+        Returns:
+            float: The corpus score.
+        """
+        return self.scorer.corpus_score(hypotheses, [references]).score

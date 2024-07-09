@@ -142,6 +142,34 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
         with timer.measure("expectation"):
             return self.pairwise_scores(hypotheses, references, source).mean(dim=1)
 
+    def corpus_score(
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        sources: Optional[list[str]] = None,
+    ) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            sources (list[str], optional): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        if sources is None:
+            return sum(
+                [self.score(hyp, ref) for hyp, ref in zip(hypotheses, references)]
+            ) / len(hypotheses)
+        else:
+            return sum(
+                [
+                    self.score(hyp, ref, src)
+                    for hyp, ref, src in zip(hypotheses, references, sources)
+                ]
+            ) / len(hypotheses)
+
 
 class MetricCacheable(Metric, metaclass=abc.ABCMeta):
     """Base class for cacheable metrics.
@@ -340,3 +368,17 @@ class MetricReferenceless(MetricBase, metaclass=abc.ABCMeta):
             Tensor: The scores of hypotheses.
         """
         return Tensor([self.score(hyp, src) for hyp, src in zip(hypotheses, sources)])
+
+    def corpus_score(self, hypotheses: list[str], sources: list[str]) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            sources (list[str]): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        return sum(self.scores(hypotheses, sources=sources).cpu().float().item()) / len(
+            hypotheses
+        )

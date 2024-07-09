@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import torch
 from comet import download_model, load_from_checkpoint
 from torch import Tensor
+import tqdm
 
 from . import MetricCacheable, register
 
@@ -97,3 +98,29 @@ class MetricCOMET(MetricCacheable):
             Tensor: N scores.
         """
         return self.scorer.estimate(sources_ir, hypotheses_ir, references_ir)["score"]
+
+    def corpus_score(
+        self, hypotheses: list[str], references: list[str], sources: list[str]
+    ) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (list[str]): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        scores = []
+        for i in range(0, len(hypotheses), self.cfg.batch_size):
+            scores.append(
+                self.scores(
+                    hypotheses[i : i + self.cfg.batch_size],
+                    references[i : i + self.cfg.batch_size],
+                    sources[i : i + self.cfg.batch_size],
+                )
+                .float()
+                .cpu()
+            )
+        return torch.cat(scores).mean().item()

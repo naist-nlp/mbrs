@@ -30,3 +30,15 @@ class TestMetricCOMETQE:
             atol=0.0005 / 100,
             rtol=1e-6,
         )
+
+    def test_corpus_score(self, metric_cometqe: MetricCOMETQE):
+        hyps = [
+            "this is a test",
+            "another test",
+            "this is a fest",
+            "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
+        ]
+        assert torch.isclose(
+            torch.tensor(metric_cometqe.corpus_score(hyps, SOURCES)),
+            torch.tensor(0.66306),
+        )
