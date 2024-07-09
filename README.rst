@@ -108,6 +108,7 @@ Currently, the following metrics are supported:
 - COMET: :code:`comet` `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_
 - COMETkiwi: :code:`cometqe` `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_
 - XCOMET: :code:`xcomet` `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
+- BLEURT: :code:`bleurt` `(Sellam et al., 2020) <https://aclanthology.org/2020.acl-main.704>`_
 
 The following decoding methods are implemented:
 

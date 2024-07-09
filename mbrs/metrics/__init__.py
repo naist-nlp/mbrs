@@ -10,6 +10,7 @@ from .comet import MetricCOMET
 from .cometqe import MetricCOMETQE
 from .ter import MetricTER
 from .xcomet import MetricXCOMET
+from .bleurt import MetricBLEURT
 
 __all__ = [
     "Metric",
@@ -21,4 +22,5 @@ __all__ = [
     "MetricCOMETQE",
     "MetricTER",
     "MetricXCOMET",
+    "MetricBLEURT",
 ]
