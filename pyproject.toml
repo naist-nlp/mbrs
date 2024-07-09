@@ -28,6 +28,7 @@ pytest-cov = "^4.1.0"
 [tool.poetry.scripts]
 mbrs-decode = "mbrs.cli.decode:cli_main"
 mbrs-generate = "mbrs.cli.generate:cli_main"
+mbrs-score = "mbrs.cli.score:cli_main"
 
 [tool.coverage.run]
 omit = ["*_test.py"]
