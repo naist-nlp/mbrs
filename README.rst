@@ -62,7 +62,20 @@ This example regards the hypothesis set as the pseudo-reference set.
       --decoder mbr \
       --metric comet \
       --metric.model Unbabel/wmt22-comet-da \
-      --metric.batch_size 64 --metric.fp16
+      --metric.batch_size 64 --metric.fp16 true
+
+Finally, you can evaluate the score with :code:`mbrs-score`:
+
+.. code:: bash
+
+    mbrs-score \
+      hypotheses.txt \
+      --sources sources.txt \
+      --references hypotheses.txt \
+      --format json \
+      --metric bleurt \
+      --metric.batch_size 64 --metric.fp16 true
+
 
 Python API
 ----------

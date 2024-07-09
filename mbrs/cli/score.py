@@ -39,8 +39,8 @@ class CommonArguments:
 
     # Hypotheses file.
     hypotheses: str = field(positional=True)
-    # Source file.
-    source: str | None = field(default=None, alias=["-s"])
+    # Sources file.
+    sources: str | None = field(default=None, alias=["-s"])
     # References file.
     references: str | None = field(default=None, alias=["-r"])
     # Output format.
@@ -71,8 +71,8 @@ def main(args: Namespace) -> None:
     num_sents = len(hypotheses)
 
     sources = None
-    if args.common.source is not None:
-        with open(args.common.source, mode="r") as f:
+    if args.common.sources is not None:
+        with open(args.common.sources, mode="r") as f:
             sources = f.readlines()
         assert num_sents == len(sources)
 
