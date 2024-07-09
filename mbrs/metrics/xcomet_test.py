@@ -41,16 +41,16 @@ class TestMetricXCOMET:
     def test_scores(self, metric_xcomet: MetricXCOMET):
         hyps = ["another test", "this is a test", "this is an test"]
         refs = ["another test", "this is a fest", "this is a test"]
-        src = SOURCE
+        srcs = [SOURCE] * len(hyps)
 
         torch.testing.assert_close(
-            metric_xcomet.scores(hyps, refs, src).cpu().float(),
+            metric_xcomet.scores(hyps, refs, srcs).cpu().float(),
             torch.FloatTensor([1.00000, 0.90545, 1.00000]),
             atol=0.0005 / 100,
             rtol=1e-6,
         )
         torch.testing.assert_close(
-            metric_xcomet.scores(hyps, source=src).cpu().float(),
+            metric_xcomet.scores(hyps, sources=srcs).cpu().float(),
             torch.FloatTensor([0.99120, 0.99120, 0.99120]),
             atol=0.0005 / 100,
             rtol=1e-6,
@@ -69,4 +69,21 @@ class TestMetricXCOMET:
             SCORES.mean(dim=1).to(metric_xcomet.device),
             atol=0.0005 / 100,
             rtol=1e-6,
+        )
+
+    def test_corpus_score(self, metric_xcomet: MetricXCOMET):
+        hyps = ["another test", "this is a test", "this is an test"]
+        refs = ["another test", "this is a fest", "this is a test"]
+        srcs = [SOURCE] * len(hyps)
+        assert torch.isclose(
+            torch.tensor(metric_xcomet.corpus_score(hyps, refs, srcs)),
+            torch.tensor(0.96848),
+        )
+        assert torch.isclose(
+            torch.tensor(metric_xcomet.corpus_score(hyps, sources=srcs)),
+            torch.tensor(0.99120),
+        )
+        assert torch.isclose(
+            torch.tensor(metric_xcomet.corpus_score(hyps, references=refs)),
+            torch.tensor(0.92473),
         )

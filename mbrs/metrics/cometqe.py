@@ -60,19 +60,19 @@ class MetricCOMETQE(MetricReferenceless):
         Returns:
             float: The score of the given hypothesis.
         """
-        return self.scores([hypothesis], source).item()
+        return self.scores([hypothesis], [source]).item()
 
-    def scores(self, hypotheses: list[str], source: str) -> torch.Tensor:
+    def scores(self, hypotheses: list[str], sources: list[str]) -> torch.Tensor:
         """Calculate the scores of hypotheses.
 
         Args:
-            hypotheses (list[str]): Hypotheses.
-            source (str): A source.
+            hypotheses (list[str]): N hypotheses.
+            source (list[str]): N sources.
 
         Returns:
-            torch.Tensor: The scores of hypotheses.
+            torch.Tensor: N scores of the given hypotheses.
         """
-        data = [{"src": source, "mt": hyp} for hyp in hypotheses]
+        data = [{"src": src, "mt": hyp} for hyp, src in zip(hypotheses, sources)]
         scores = []
         for i in range(0, len(data), self.cfg.batch_size):
             batch = self.scorer.prepare_for_inference(data[i : i + self.cfg.batch_size])
@@ -80,3 +80,25 @@ class MetricCOMETQE(MetricReferenceless):
             model_output = self.scorer.predict_step(batch)
             scores.append(model_output.scores)
         return torch.cat(scores).view(len(hypotheses))
+
+    def corpus_score(self, hypotheses: list[str], sources: list[str]) -> float:
+        """Calculate the corpus-level score.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            source (list[str]): Sources.
+
+        Returns:
+            float: The corpus score.
+        """
+        scores = []
+        for i in range(0, len(hypotheses), self.cfg.batch_size):
+            scores.append(
+                self.scores(
+                    hypotheses[i : i + self.cfg.batch_size],
+                    sources[i : i + self.cfg.batch_size],
+                )
+                .float()
+                .cpu()
+            )
+        return torch.cat(scores).mean().item()

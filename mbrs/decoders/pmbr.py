@@ -113,19 +113,24 @@ class DecoderProbabilisticMBR(DecoderMBR):
 
         # Algorithm 2 in the paper.
         if isinstance(self.metric, MetricCacheable):
-            for i in range(0, len(hypothesis_sample_indices), H):
+            num_hyp_samples = len(hypothesis_sample_indices)
+            for i in range(0, num_hyp_samples, H):
                 pairwise_scores[
                     hypothesis_sample_indices[i : i + H],
                     reference_sample_indices[i : i + H],
                 ] = self.metric.scores_from_ir(
                     hypotheses_ir[hypothesis_sample_indices[i : i + H]],
                     references_ir[reference_sample_indices[i : i + H]],
-                    source_ir,
+                    source_ir.repeat(min(H, num_hyp_samples - i), 1)
+                    if source_ir is not None
+                    else None,
                 ).float()
         else:
             pairwise_scores[hypothesis_sample_indices, reference_sample_indices] = (
                 self.metric.scores(
-                    hypothesis_samples, reference_samples, source
+                    hypothesis_samples,
+                    reference_samples,
+                    [source] * len(hypothesis_samples) if source is not None else None,
                 ).float()
             )
         observed_mask = pairwise_scores.new_zeros((H, R), dtype=torch.bool)

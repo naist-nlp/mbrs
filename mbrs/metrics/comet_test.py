@@ -42,3 +42,21 @@ class TestMetricCOMET:
             atol=0.0005 / 100,
             rtol=1e-6,
         )
+
+    def test_corpus_score(self, metric_comet: MetricCOMET):
+        hyps = [
+            "this is a test",
+            "another test",
+            "this is a fest",
+            "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
+        ]
+        refs = [
+            "this is a test",
+            "ref",
+            "this is a test",
+            "producţia de zahăr brut se exprimă în zahăr alb;",
+        ]
+        assert torch.isclose(
+            torch.tensor(metric_comet.corpus_score(hyps, refs, [SOURCE] * len(hyps))),
+            torch.tensor(0.77979),
+        )

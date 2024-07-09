@@ -41,3 +41,22 @@ class TestMetricChrF:
             atol=0.0005,
             rtol=1e-4,
         )
+
+    def test_corpus_score(self):
+        hyps = [
+            "this is a test",
+            "another test",
+            "this is a fest",
+            "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
+        ]
+        refs = [
+            "this is a test",
+            "ref",
+            "this is a test",
+            "producţia de zahăr brut se exprimă în zahăr alb;",
+        ]
+
+        metric = MetricChrF(MetricChrF.Config())
+        assert torch.isclose(
+            torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(53.90979)
+        )
