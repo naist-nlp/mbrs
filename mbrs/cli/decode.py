@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
+import enum
+import json
 import logging
 import os
 import sys
-
-from mbrs.decoders.base import DecoderBase
+from argparse import FileType, Namespace
+from dataclasses import dataclass
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -14,19 +16,20 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-import enum
-import json
-from argparse import FileType, Namespace
-from dataclasses import dataclass
-
 import simple_parsing
+import torch
 from simple_parsing import ArgumentParser, choice, field, flag
 from simple_parsing.wrappers import dataclass_wrapper
 from tabulate import tabulate, tabulate_formats
 from tqdm import tqdm
 
 from mbrs import registry, timer
-from mbrs.decoders import DecoderReferenceBased, DecoderReferenceless, get_decoder
+from mbrs.decoders import (
+    DecoderBase,
+    DecoderReferenceBased,
+    DecoderReferenceless,
+    get_decoder,
+)
 from mbrs.metrics import Metric, get_metric
 
 simple_parsing.parsing.logger.setLevel(logging.ERROR)
@@ -50,6 +53,8 @@ class CommonArguments:
     source: str | None = field(default=None, alias=["-s"])
     # References file.
     references: str | None = field(default=None, alias=["-r"])
+    # References log-probabilities file.
+    reference_lprobs: str | None = field(default=None)
     # Output file.
     output: FileType("w", encoding="utf-8") = field(default="-", alias=["-o"])
     # Output format.
@@ -105,6 +110,12 @@ def main(args: Namespace) -> None:
     else:
         references = hypotheses
 
+    reference_lprobs = None
+    if args.common.reference_lprobs is not None:
+        with open(args.common.reference_lprobs, mode="r") as f:
+            reference_lprobs = f.readlines()
+        assert len(references) == len(reference_lprobs)
+
     metric_type = get_metric(args.common.metric)
     metric: Metric = metric_type(args.metric)
 
@@ -151,8 +162,22 @@ def main(args: Namespace) -> None:
             src = sources[i].strip() if sources is not None else None
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
             refs = [r.strip() for r in references[i * num_refs : (i + 1) * num_refs]]
+            ref_lprobs = None
+            if reference_lprobs is not None:
+                ref_lprobs = torch.Tensor(
+                    [
+                        float(r.strip())
+                        for r in reference_lprobs[i * num_refs : (i + 1) * num_refs]
+                    ]
+                )
             with timer.measure("total"):
-                output = decoder.decode(hyps, refs, src, args.common.nbest)
+                output = decoder.decode(
+                    hyps,
+                    refs,
+                    src,
+                    nbest=args.common.nbest,
+                    reference_lprobs=ref_lprobs,
+                )
             output_results(output)
 
     if not args.common.quiet:

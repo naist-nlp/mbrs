@@ -7,7 +7,7 @@ from typing import Optional
 import torch
 from torch import Tensor
 
-from mbrs import timer
+from mbrs import functional, timer
 
 
 class MetricBase(abc.ABC):
@@ -127,7 +127,11 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
             )
 
     def expected_scores(
-        self, hypotheses: list[str], references: list[str], source: Optional[str] = None
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        source: Optional[str] = None,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> Tensor:
         """Calculate the expected scores for each hypothesis.
 
@@ -135,12 +139,17 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
             hypotheses (list[str]): Hypotheses.
             references (list[str]): References.
             source (str, optional): A source.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             Tensor: The expected scores for each hypothesis.
         """
         with timer.measure("expectation"):
-            return self.pairwise_scores(hypotheses, references, source).mean(dim=1)
+            return functional.expectation(
+                self.pairwise_scores(hypotheses, references, source),
+                lprobs=reference_lprobs,
+            )
 
     def corpus_score(
         self,

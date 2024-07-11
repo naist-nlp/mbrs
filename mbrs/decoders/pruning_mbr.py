@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
+from torch import Tensor
 
-from mbrs import timer
+from mbrs import functional, timer
 from mbrs.metrics import MetricCacheable
 
 from . import register
@@ -49,6 +50,7 @@ class DecoderPruningMBR(DecoderMBR):
         references: list[str],
         source: Optional[str] = None,
         nbest: int = 1,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> tuple[list[float], list[int]]:
         """Select the n-best hypotheses using pruning MBR decoding.
 
@@ -57,6 +59,8 @@ class DecoderPruningMBR(DecoderMBR):
             references (list[str]): References.
             source (str, optional): A source.
             nbest (int): Return the n-best hypotheses.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             - list[float]: Top-k scores.
@@ -101,7 +105,13 @@ class DecoderPruningMBR(DecoderMBR):
                     pairwise_scores[:, prev_r:r] = self.metric.pairwise_scores(
                         hypotheses, references[prev_r:r], source
                     )
-                expected_scores = pairwise_scores.mean(dim=-1)
+
+                expected_scores = functional.expectation(
+                    pairwise_scores[:, :r],
+                    lprobs=reference_lprobs[:r]
+                    if reference_lprobs is not None
+                    else None,
+                )
                 current_best_idx = self.metric.argbest(expected_scores)
                 sample_indices = torch.randint(
                     r,
@@ -109,8 +119,11 @@ class DecoderPruningMBR(DecoderMBR):
                     device=self.metric.device,
                     generator=rng,
                 )
-                bootstrap_expected_scores = pairwise_scores[:, sample_indices].mean(
-                    dim=-1
+                bootstrap_expected_scores = functional.expectation(
+                    pairwise_scores[:, sample_indices],
+                    lprobs=reference_lprobs[sample_indices]
+                    if reference_lprobs is not None
+                    else None,
                 )
 
                 win_rates = (
@@ -133,7 +146,12 @@ class DecoderPruningMBR(DecoderMBR):
                     prev_r = r
                 else:
                     break
-            expected_scores = pairwise_scores[:, :prev_r].mean(dim=1)
+            expected_scores = functional.expectation(
+                pairwise_scores[:, :prev_r],
+                lprobs=reference_lprobs[:prev_r]
+                if reference_lprobs is not None
+                else None,
+            )
 
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return topk_scores, orig_indices[topk_indices].tolist()
@@ -144,6 +162,7 @@ class DecoderPruningMBR(DecoderMBR):
         references: list[str],
         source: Optional[str] = None,
         nbest: int = 1,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> DecoderMBR.Output:
         """Select the n-best hypotheses based on the strategy.
 
@@ -152,6 +171,8 @@ class DecoderPruningMBR(DecoderMBR):
             references (list[str]): References.
             source (str, optional): A source.
             nbest (int): Return the n-best hypotheses.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             DecoderMBR.Output: The n-best hypotheses.
@@ -159,12 +180,12 @@ class DecoderPruningMBR(DecoderMBR):
 
         if len(hypotheses) <= nbest:
             expected_scores = self.metric.expected_scores(
-                hypotheses, references, source
+                hypotheses, references, source, reference_lprobs=reference_lprobs
             )
             topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         else:  # Pruning MBR decoding
             topk_scores, topk_indices = self.decode_pruning(
-                hypotheses, references, source
+                hypotheses, references, source, reference_lprobs=reference_lprobs
             )
 
         return self.Output(

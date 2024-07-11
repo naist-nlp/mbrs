@@ -5,8 +5,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 import torch
+from torch import Tensor
 
-from mbrs import timer
+from mbrs import functional, timer
 from mbrs.metrics import MetricCacheable
 from mbrs.modules.als import MatrixFactorizationALS
 
@@ -44,13 +45,13 @@ class DecoderProbabilisticMBR(DecoderMBR):
         niter: int = 10
         seed: int = 0
 
-    def expected_scores_probabilistic(
+    def pairwise_scores_probabilistic(
         self,
         hypotheses: list[str],
         references: list[str],
         source: Optional[str] = None,
-    ) -> torch.Tensor:
-        """Compute the expected scores using the probabilistic MBR algorithm.
+    ) -> Tensor:
+        """Compute approximated pairwise scores using the probabilistic MBR algorithm.
 
         Args:
             hypotheses (list[str]): Hypotheses.
@@ -58,7 +59,7 @@ class DecoderProbabilisticMBR(DecoderMBR):
             source (str, optional): A source.
 
         Returns:
-            torch.Tensor: Expected scores of shape `(H,)`.
+            Tensor: Approximated pairwise scores of shape `(H, R)`.
         """
         rng = torch.Generator().manual_seed(self.cfg.seed)
         H = len(hypotheses)
@@ -146,8 +147,8 @@ class DecoderProbabilisticMBR(DecoderMBR):
             niter=self.cfg.niter,
             seed=self.cfg.seed,
         )
-        pairwise_scores = X @ Y.T
-        return pairwise_scores.mean(dim=-1)
+        reconstructed_pairwise_scores = X @ Y.T
+        return reconstructed_pairwise_scores
 
     def decode(
         self,
@@ -155,6 +156,7 @@ class DecoderProbabilisticMBR(DecoderMBR):
         references: list[str],
         source: Optional[str] = None,
         nbest: int = 1,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> DecoderMBR.Output:
         """Select the n-best hypotheses based on the strategy.
 
@@ -163,6 +165,8 @@ class DecoderProbabilisticMBR(DecoderMBR):
             references (list[str]): References.
             source (str, optional): A source.
             nbest (int): Return the n-best hypotheses.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             DecoderMBR.Output: The n-best hypotheses.
@@ -170,12 +174,16 @@ class DecoderProbabilisticMBR(DecoderMBR):
 
         if self.cfg.reduction_factor <= 1.0:
             expected_scores = self.metric.expected_scores(
-                hypotheses, references, source
+                hypotheses, references, source, reference_lprobs=reference_lprobs
             )
         else:  # Probabilistic MBR decoding
-            expected_scores = self.expected_scores_probabilistic(
+            pairwise_scores = self.pairwise_scores_probabilistic(
                 hypotheses, references, source
             )
+            expected_scores = functional.expectation(
+                pairwise_scores, lprobs=reference_lprobs
+            )
+
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(
             idx=topk_indices,

@@ -1,6 +1,6 @@
 from mbrs import registry
 
-from .base import DecoderReferenceBased, DecoderReferenceless
+from .base import DecoderBase, DecoderReferenceBased, DecoderReferenceless
 
 register, get_decoder = registry.setup("decoder")
 
@@ -11,6 +11,7 @@ from .pruning_mbr import DecoderPruningMBR
 from .rerank import DecoderRerank
 
 __all__ = [
+    "DecoderBase",
     "DecoderReferenceBased",
     "DecoderReferenceless",
     "DecoderMBR",

@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 from mbrs.metrics.chrf import MetricChrF
 from mbrs.metrics.comet import MetricCOMET
@@ -31,8 +31,6 @@ BEST_SENTENCES = [
     "this is a test",
     "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
 ]
-SCORES_COMET = np.array([0.84780, 0.85304, 0.99257, 0.78060], dtype=np.float32)
-SCORES_CHRF = np.array([48.912, 44.239, 100.0, 46.161], dtype=np.float32)
 
 NITER = 30
 FACTOR = 1.25
@@ -62,5 +60,15 @@ class TestDecoderProbabilisticMBR:
         )
         for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
             output = decoder.decode(hyps, refs, SOURCE[i], nbest=1)
+            assert output.idx[0] == BEST_INDICES[i]
+            assert output.sentence[0] == BEST_SENTENCES[i]
+
+            output = decoder.decode(
+                hyps,
+                refs,
+                SOURCE[i],
+                nbest=1,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs)),
+            )
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
