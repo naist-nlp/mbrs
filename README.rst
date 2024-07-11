@@ -136,6 +136,15 @@ Specifically, the following methods of MBR decoding are included:
 - Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`cbmbr`
 - Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`pmbr`
 
+Related projects
+================
+
+- `mbr <https://github.com/ZurichNLP/mbr>`_
+
+  - Highly integrated with `huggingface transformers <https://huggingface.co/transformers>`_ by customizing `generate()` method of model implementation.
+  - If you are looking for an MBR decoding library that is fully integrated into transformers, this might be a good choice.
+  - Our mbrs works standalone; thus, not only `transformers <https://huggingface.co/transformers>`_ but also `fairseq <https://github.com/facebookresearch/fairseq>`_ or LLM outputs via API can be used.
+
 Citation
 ========
 If you use this software, please cite:
