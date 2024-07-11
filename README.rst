@@ -115,25 +115,26 @@ List of implemented methods
 
 Currently, the following metrics are supported:
 
-- BLEU: :code:`bleu` `(Papineni et al., 2002) <https://aclanthology.org/P02-1040>`_
-- TER: :code:`ter` `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_
-- chrF: :code:`chrf` `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_
-- COMET: :code:`comet` `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_
-- COMETkiwi: :code:`cometqe` `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_
-- XCOMET: :code:`xcomet` `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
-- BLEURT: :code:`bleurt` `(Sellam et al., 2020) <https://aclanthology.org/2020.acl-main.704>`_
+- BLEU `(Papineni et al., 2002) <https://aclanthology.org/P02-1040>`_: :code:`bleu`
+- TER `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_: :code:`ter` 
+- chrF `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_: :code:`chrf` 
+- COMET `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_: :code:`comet` 
+- COMETkiwi `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_: :code:`cometqe` 
+- XCOMET `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_: :code:`xcomet` 
+- BLEURT `(Sellam et al., 2020) <https://aclanthology.org/2020.acl-main.704>`_: :code:`bleurt` (thanks to `@lucadiliello <https://github.com/lucadiliello/bleurt-pytorch>`_)
 
 The following decoding methods are implemented:
 
-- N-best reranking
-- MBR decoding
+- N-best reranking: :code:`rerank`
+- MBR decoding: :code:`mbr`
 
 Specifically, the following methods of MBR decoding are included:
 
-- Monte Carlo estimation: :code:`mbr` (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
-- Confidence-based pruning: :code:`pruning_mbr` `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ 
-- Centroid-based MBR: :code:`cbmbr` `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_
-- Probabilistic MBR: :code:`pmbr` `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_
+- Monte Carlo estimation (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
+- Model-based estimation `(Jinnai et al., 2024) <https://arxiv.org/abs/2311.05263>`_: :code:`--reference_lprobs` option
+- Confidence-based pruning `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ : :code:`pruning_mbr`
+- Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`cbmbr`
+- Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`pmbr`
 
 Citation
 ========

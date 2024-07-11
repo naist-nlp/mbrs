@@ -4,6 +4,8 @@ import abc
 from dataclasses import dataclass
 from typing import Optional
 
+from torch import Tensor
+
 from mbrs.metrics.base import Metric, MetricBase, MetricReferenceless
 
 
@@ -43,6 +45,7 @@ class DecoderReferenceBased(DecoderBase, metaclass=abc.ABCMeta):
         references: list[str],
         source: Optional[str] = None,
         nbest: int = 1,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> DecoderReferenceBased.Output:
         """Select the n-best hypotheses based on the strategy.
 
@@ -51,6 +54,8 @@ class DecoderReferenceBased(DecoderBase, metaclass=abc.ABCMeta):
             references (list[str]): References.
             source (str, optional): A source.
             nbest (int): Return the n-best hypotheses.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             Decoder.Output: The n-best hypotheses.

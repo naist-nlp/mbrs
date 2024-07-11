@@ -51,3 +51,18 @@ class TestDecoderCBMBR:
                 SCORES[i],
                 atol=0.0005 / 100,
             )
+
+            output = decoder.decode(
+                hyps,
+                refs,
+                SOURCE[i],
+                nbest=1,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs)),
+            )
+            assert output.idx[0] == BEST_INDICES[i]
+            assert output.sentence[0] == BEST_SENTENCES[i]
+            assert torch.isclose(
+                torch.tensor(output.score[0]),
+                SCORES[i],
+                atol=0.0005 / 100,
+            )

@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from mbrs.metrics.chrf import MetricChrF
 from mbrs.metrics.comet import MetricCOMET
@@ -43,6 +44,19 @@ class TestDecoderPruningMBR:
         )
         for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
             output = decoder.decode(hyps, refs, SOURCE[i], nbest=1)
+            assert output.idx[0] == BEST_INDICES[i]
+            assert output.sentence[0] == BEST_SENTENCES[i]
+            assert np.allclose(
+                np.array(output.score[0], dtype=np.float32), SCORES_CHRF[i], atol=0.0005
+            )
+
+            output = decoder.decode(
+                hyps,
+                refs,
+                SOURCE[i],
+                nbest=1,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs)),
+            )
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
             assert np.allclose(

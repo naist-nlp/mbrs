@@ -3,7 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
-from mbrs import timer
+from torch import Tensor
+
+from mbrs import functional, timer
 from mbrs.metrics import MetricCacheable
 from mbrs.modules.kmeans import Kmeans
 
@@ -49,6 +51,7 @@ class DecoderCBMBR(DecoderMBR):
         references: list[str],
         source: Optional[str] = None,
         nbest: int = 1,
+        reference_lprobs: Optional[Tensor] = None,
     ) -> DecoderCBMBR.Output:
         """Select the n-best hypotheses based on the strategy.
 
@@ -57,11 +60,12 @@ class DecoderCBMBR(DecoderMBR):
             references (list[str]): References.
             source (str, optional): A source.
             nbest (int): Return the n-best hypotheses.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
             DecoderCBMBR.Output: The n-best hypotheses.
         """
-
         assert isinstance(self.metric, MetricCacheable)
 
         with timer.measure("encode/hypotheses"):
@@ -82,22 +86,25 @@ class DecoderCBMBR(DecoderMBR):
             niter=self.cfg.niter,
             seed=self.cfg.seed,
         )
+
+        lprobs = None
         if self.cfg.count_weight:
             centroid_ids, counts_nonzero = assigns.unique(return_counts=True)
             counts = centroid_ids.new_zeros(len(centroids))
             counts[centroid_ids] = counts_nonzero
-            counts = counts.float()
-            weights = counts / counts.sum()
-            with timer.measure("expectation"):
-                pairwise_scores = self.metric.pairwise_scores_from_ir(
-                    hypotheses_ir, centroids, source_ir
-                )
-                expected_scores = (pairwise_scores * weights[None, :]).mean(dim=-1)
-        else:
-            with timer.measure("expectation"):
-                expected_scores = self.metric.pairwise_scores_from_ir(
-                    hypotheses_ir, centroids, source_ir
-                ).mean(dim=-1)
+            lprobs = counts.log()
+        elif reference_lprobs is not None:
+            lprobs = (
+                centroids.new_zeros(len(centroids))
+                .scatter_add(dim=-1, index=assigns.unique(), src=reference_lprobs.exp())
+                .log()
+            )
+
+        with timer.measure("expectation"):
+            pairwise_scores = self.metric.pairwise_scores_from_ir(
+                hypotheses_ir, centroids, source_ir
+            )
+            expected_scores = functional.expectation(pairwise_scores, lprobs=lprobs)
 
         topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
         return self.Output(
