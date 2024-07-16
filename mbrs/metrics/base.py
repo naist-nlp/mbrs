@@ -180,7 +180,34 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
             ) / len(hypotheses)
 
 
-class MetricCacheable(Metric, metaclass=abc.ABCMeta):
+class MetricAggregatable(Metric, metaclass=abc.ABCMeta):
+    """Base class for aggregatable metrics.
+
+    This class supports reference aggregation."""
+
+    @abc.abstractmethod
+    def expected_scores_reference_aggregation(
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        source: Optional[str] = None,
+        reference_lprobs: Optional[Tensor] = None,
+    ) -> Tensor:
+        """Calculate the expected scores for each hypothesis.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
+
+        Returns:
+            Tensor: The expected scores for each hypothesis.
+        """
+
+
+class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
     """Base class for cacheable metrics.
 
     This class supports to cache intermediate representations of the encoder."""
@@ -349,6 +376,54 @@ class MetricCacheable(Metric, metaclass=abc.ABCMeta):
             with timer.measure("encode/source"):
                 source_ir = self.encode([source])
         return self.pairwise_scores_from_ir(hypotheses_ir, references_ir, source_ir)
+
+    def expected_scores_reference_aggregation(
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        source: Optional[str] = None,
+        reference_lprobs: Optional[Tensor] = None,
+    ) -> Tensor:
+        """Calculate the expected scores for each hypothesis.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
+
+        Returns:
+            Tensor: The expected scores for each hypothesis.
+        """
+        with timer.measure("encode/hypotheses"):
+            hypotheses_ir = self.encode(hypotheses)
+        if hypotheses == references:
+            references_ir = hypotheses_ir
+        else:
+            with timer.measure("encode/references"):
+                references_ir = self.encode(references)
+        if source is None:
+            source_ir = None
+        else:
+            with timer.measure("encode/source"):
+                source_ir = self.encode([source])
+
+        with timer.measure("aggregate/references"):
+            if reference_lprobs is not None:
+                aggregated_reference_ir = (
+                    references_ir
+                    * reference_lprobs.to(references_ir)
+                    .softmax(dim=-1, dtype=torch.float32)
+                    .to(references_ir)[:, None]
+                ).sum(dim=0, keepdim=True)
+            else:
+                aggregated_reference_ir = references_ir.mean(dim=0, keepdim=True)
+
+        with timer.measure("expectation"):
+            return self.pairwise_scores_from_ir(
+                hypotheses_ir, aggregated_reference_ir, source_ir=source_ir
+            ).mean(dim=-1)
 
 
 class MetricReferenceless(MetricBase, metaclass=abc.ABCMeta):

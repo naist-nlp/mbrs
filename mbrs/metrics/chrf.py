@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+from collections import Counter, defaultdict
 from dataclasses import dataclass
+from typing import Optional
 
+import torch
 from sacrebleu.metrics.chrf import CHRF
+from sacrebleu.metrics.helpers import extract_all_char_ngrams, extract_word_ngrams
+from torch import Tensor
 
-from . import Metric, register
+from mbrs import timer
+
+from . import Metric, MetricAggregatable, register
 
 
 @register("chrf")
-class MetricChrF(Metric):
+class MetricChrF(MetricAggregatable):
     """ChrF metric class."""
 
     @dataclass
@@ -30,6 +37,15 @@ class MetricChrF(Metric):
         lowercase: bool = False
         whitespace: bool = False
         eps_smoothing: bool = False
+
+    @dataclass
+    class AggregatedReference:
+        """Aggregated reference representation.
+
+        - ngrams (list[Counter]]): Bags of n-grams for each order.
+        """
+
+        ngrams: list[Counter]
 
     def __init__(self, cfg: MetricChrF.Config):
         self.scorer = CHRF(
@@ -64,3 +80,88 @@ class MetricChrF(Metric):
             float: The corpus score.
         """
         return self.scorer.corpus_score(hypotheses, [references]).score
+
+    def _aggregate_references(
+        self, references: list[str], reference_lprobs: Optional[Tensor] = None
+    ) -> AggregatedReference:
+        """Aggregate references.
+
+        Args:
+            references (list[str]): References.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
+
+        Returns:
+            MetricChrF.AggregatedReference: Aggregated reference representation.
+        """
+        reference_ngrams: list[list[Counter[str]]] = self.scorer._cache_references(
+            [[ref] for ref in references]
+        )[0]["ref_ngrams"]
+
+        reference_probs = [1.0 / len(references)] * len(references)
+        if reference_lprobs is not None:
+            reference_probs = reference_lprobs.softmax(dim=-1).tolist()
+
+        acc_ngrams: defaultdict[int, Counter[str]] = defaultdict(Counter)
+        for i, ngrams in enumerate(reference_ngrams):
+            for order, ngram_counts in enumerate(ngrams):
+                for ngram in ngram_counts:
+                    # Note: Counter has float values.
+                    ngram_counts[ngram] *= reference_probs[i]
+                acc_ngrams[order] += ngram_counts
+
+        return self.AggregatedReference(
+            [acc_ngrams[order] for order in range(len(acc_ngrams))]
+        )
+
+    def expected_scores_reference_aggregation(
+        self,
+        hypotheses: list[str],
+        references: list[str],
+        source: Optional[str] = None,
+        reference_lprobs: Optional[Tensor] = None,
+    ) -> Tensor:
+        """Calculate the expected scores for each hypothesis.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+            source (str, optional): A source.
+            reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+              The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
+
+        Returns:
+            Tensor: The expected scores for each hypothesis.
+        """
+        with timer.measure("aggregate/references"):
+            aggregated_reference = self._aggregate_references(
+                references, reference_lprobs=reference_lprobs
+            )
+
+        expected_scores = torch.zeros((len(hypotheses),))
+        for i, hypothesis in enumerate(hypotheses):
+            with timer.measure("expectation"):
+                hypothesis = self.scorer._preprocess_segment(hypothesis)
+
+                # Extract character n-grams
+                all_hyp_ngrams = extract_all_char_ngrams(
+                    hypothesis, self.scorer.char_order, self.scorer.whitespace
+                )
+
+                # Check chrF+ mode to see if we'll add word n-grams as well
+                if self.scorer.word_order > 0:
+                    # Primitive tokenization: separate out punctuations
+                    hwords = self.scorer._remove_punctuation(hypothesis)
+                    _range = range(1, self.scorer.word_order + 1)
+                    all_hyp_ngrams.extend(
+                        [extract_word_ngrams(hwords, n) for n in _range]
+                    )
+
+                stats = []
+                # Traverse all orders
+                for h, r in zip(all_hyp_ngrams, aggregated_reference.ngrams):
+                    stats.extend(self.scorer._get_match_statistics(h, r))
+                f_score = self.scorer._compute_f_score(stats)
+                expected_scores[i] = f_score
+
+        return expected_scores

@@ -20,6 +20,11 @@ class DecoderCBMBR(DecoderMBR):
     - Time complexity: O(Nk)
     - Space complexity: O(Nk)
     where k << N.
+
+    References:
+        H. Deguchi et al., 2024.
+        "Centroid-Based Efficient Minimum Bayes Risk Decoding".
+        https://arxiv.org/abs/2402.11197
     """
 
     def __init__(self, cfg: Config, metric: MetricCacheable) -> None:

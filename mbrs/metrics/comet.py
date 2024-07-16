@@ -5,13 +5,12 @@ from dataclasses import dataclass
 import torch
 from comet import download_model, load_from_checkpoint
 from torch import Tensor
-import tqdm
 
-from . import MetricCacheable, register
+from . import MetricAggregatable, MetricCacheable, register
 
 
 @register("comet")
-class MetricCOMET(MetricCacheable):
+class MetricCOMET(MetricCacheable, MetricAggregatable):
     """COMET metric class."""
 
     @dataclass

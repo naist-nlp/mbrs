@@ -32,6 +32,10 @@ SCORES_EFFECTIVE_ORDER = {
         ]
     ),
 }
+EXPECTED_SCORES_AGGREGATED = {
+    True: torch.Tensor([25.96003, 6.44121, 20.31482, 5.13217]),
+    False: torch.Tensor([25.96003, 0.0, 20.31482, 5.13217]),
+}
 
 
 class TestMetricBLEU:
@@ -74,4 +78,29 @@ class TestMetricBLEU:
         metric = MetricBLEU(MetricBLEU.Config())
         assert torch.isclose(
             torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(22.41424)
+        )
+
+    @pytest.mark.parametrize("effective_order", [True, False])
+    def test_expected_scores_reference_aggregation(self, effective_order: bool):
+        metric = MetricBLEU(MetricBLEU.Config(effective_order=effective_order))
+        expected_scores = metric.expected_scores_reference_aggregation(
+            HYPOTHESES, REFERENCES
+        )
+        torch.testing.assert_close(
+            expected_scores,
+            EXPECTED_SCORES_AGGREGATED[effective_order],
+            atol=0.0005,
+            rtol=1e-4,
+        )
+
+        expected_scores = metric.expected_scores_reference_aggregation(
+            HYPOTHESES,
+            REFERENCES,
+            reference_lprobs=torch.Tensor([-2.000]).repeat(len(REFERENCES)),
+        )
+        torch.testing.assert_close(
+            expected_scores,
+            EXPECTED_SCORES_AGGREGATED[effective_order],
+            atol=0.0005,
+            rtol=1e-4,
         )

@@ -21,6 +21,7 @@ SCORES = torch.Tensor(
         [6.849, 7.224, 46.161],
     ],
 )
+EXPECTED_SCORES_AGGREGATED = torch.Tensor([23.08157, 10.29285, 16.35524, 29.16298])
 
 
 class TestMetricChrF:
@@ -59,4 +60,22 @@ class TestMetricChrF:
         metric = MetricChrF(MetricChrF.Config())
         assert torch.isclose(
             torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(53.90979)
+        )
+
+    def test_expected_scores_reference_aggregation(self):
+        metric = MetricChrF(MetricChrF.Config())
+        expected_scores = metric.expected_scores_reference_aggregation(
+            HYPOTHESES, REFERENCES
+        )
+        torch.testing.assert_close(
+            expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
+        )
+
+        expected_scores = metric.expected_scores_reference_aggregation(
+            HYPOTHESES,
+            REFERENCES,
+            reference_lprobs=torch.Tensor([-2.000]).repeat(len(REFERENCES)),
+        )
+        torch.testing.assert_close(
+            expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
         )

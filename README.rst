@@ -130,11 +130,22 @@ The following decoding methods are implemented:
 
 Specifically, the following methods of MBR decoding are included:
 
-- Monte Carlo estimation (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
-- Model-based estimation `(Jinnai et al., 2024) <https://arxiv.org/abs/2311.05263>`_: :code:`--reference_lprobs` option
-- Confidence-based pruning `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ : :code:`pruning_mbr`
-- Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`cbmbr`
-- Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`pmbr`
+- Expectation estimation:
+
+  - Monte Carlo estimation (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
+  - Model-based estimation `(Jinnai et al., 2024) <https://arxiv.org/abs/2311.05263>`_: :code:`--reference_lprobs` option
+
+- Efficient methods:
+
+  - Confidence-based pruning `(Cheng and Vlachos, 2023) <https://aclanthology.org/2023.emnlp-main.767>`_ : :code:`pruning_mbr`
+  - Reference aggregation (`DeNero et al., 2009 <https://aclanthology.org/P09-1064>`_; `Vamvas and Sennrich, 2024 <https://arxiv.org/abs/2402.04251>`_): :code:`aggregate_mbr`
+
+    - N-gram aggregation on BLEU `(DeNero et al., 2009) <https://aclanthology.org/P09-1064>`_
+    - N-gram aggregation on chrF `(Vamvas and Sennrich, 2024) <https://arxiv.org/abs/2402.04251>`_
+    - Embedding aggregation on COMET (`Vamvas and Sennrich, 2024 <https://arxiv.org/abs/2402.04251>`_; `Deguchi et al., 2024 <https://arxiv.org/abs/2402.11197>`_)
+
+  - Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`cbmbr`
+  - Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`pmbr`
 
 Related projects
 ================
