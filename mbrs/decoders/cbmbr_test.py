@@ -1,6 +1,7 @@
 import pytest
 import torch
 
+from mbrs.decoders.aggregate_mbr import DecoderAggregateMBR
 from mbrs.metrics.comet import MetricCOMET
 
 from .cbmbr import DecoderCBMBR
@@ -64,5 +65,26 @@ class TestDecoderCBMBR:
             assert torch.isclose(
                 torch.tensor(output.score[0]),
                 SCORES[i],
+                atol=0.0005 / 100,
+            )
+
+    @pytest.mark.parametrize("kmeanspp", [True, False])
+    def test_decode_equivalent_with_aggregate(
+        self, metric_comet: MetricCOMET, kmeanspp: bool
+    ):
+        decoder_cbmbr = DecoderCBMBR(
+            DecoderCBMBR.Config(ncentroids=1, kmeanspp=kmeanspp), metric_comet
+        )
+        decoder_aggregate = DecoderAggregateMBR(
+            DecoderAggregateMBR.Config(), metric_comet
+        )
+        for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
+            output_cbmbr = decoder_cbmbr.decode(hyps, refs, SOURCE[i], nbest=1)
+            output_aggregate = decoder_aggregate.decode(hyps, refs, SOURCE[i], nbest=1)
+            assert output_cbmbr.idx[0] == output_aggregate.idx[0]
+            assert output_cbmbr.sentence[0] == output_aggregate.sentence[0]
+            assert torch.isclose(
+                torch.tensor(output_cbmbr.score[0]),
+                torch.tensor(output_aggregate.score[0]),
                 atol=0.0005 / 100,
             )

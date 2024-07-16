@@ -22,6 +22,7 @@ SCORES = torch.Tensor(
         [0.40692, 0.37781, 0.78060],
     ]
 )
+EXPECTED_SCORES_AGGREGATED = torch.Tensor([0.85933, 0.75443, 0.68586, 0.62650])
 
 
 class TestMetricCOMET:
@@ -59,4 +60,15 @@ class TestMetricCOMET:
         assert torch.isclose(
             torch.tensor(metric_comet.corpus_score(hyps, refs, [SOURCE] * len(hyps))),
             torch.tensor(0.77979),
+        )
+
+    def test_expected_scores_reference_aggregation(self, metric_comet: MetricCOMET):
+        expected_scores = metric_comet.expected_scores_reference_aggregation(
+            HYPOTHESES, REFERENCES, SOURCE
+        )
+        torch.testing.assert_close(
+            expected_scores,
+            EXPECTED_SCORES_AGGREGATED.to(metric_comet.device),
+            atol=0.0005 / 100,
+            rtol=1e-6,
         )

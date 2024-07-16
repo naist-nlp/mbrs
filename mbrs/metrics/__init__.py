@@ -1,6 +1,6 @@
 from mbrs import registry
 
-from .base import Metric, MetricCacheable, MetricReferenceless
+from .base import Metric, MetricAggregatable, MetricCacheable, MetricReferenceless
 
 register, get_metric = registry.setup("metric")
 
@@ -14,6 +14,7 @@ from .bleurt import MetricBLEURT
 
 __all__ = [
     "Metric",
+    "MetricAggregatable",
     "MetricCacheable",
     "MetricReferenceless",
     "MetricBLEU",
