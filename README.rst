@@ -116,11 +116,11 @@ List of implemented methods
 Currently, the following metrics are supported:
 
 - BLEU `(Papineni et al., 2002) <https://aclanthology.org/P02-1040>`_: :code:`bleu`
-- TER `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_: :code:`ter` 
-- chrF `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_: :code:`chrf` 
-- COMET `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_: :code:`comet` 
-- COMETkiwi `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_: :code:`cometqe` 
-- XCOMET `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_: :code:`xcomet` 
+- TER `(Snover et al., 2006) <https://aclanthology.org/2006.amta-papers.25>`_: :code:`ter`
+- chrF `(Popović et al., 2015) <https://aclanthology.org/W15-3049>`_: :code:`chrf`
+- COMET `(Rei et al., 2020) <https://aclanthology.org/2020.emnlp-main.213>`_: :code:`comet`
+- COMETkiwi `(Rei et al., 2022) <https://aclanthology.org/2022.wmt-1.60>`_: :code:`cometkiwi`
+- XCOMET `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_: :code:`xcomet`
 - BLEURT `(Sellam et al., 2020) <https://aclanthology.org/2020.acl-main.704>`_: :code:`bleurt` (thanks to `@lucadiliello <https://github.com/lucadiliello/bleurt-pytorch>`_)
 
 The following decoding methods are implemented:
@@ -144,8 +144,8 @@ Specifically, the following methods of MBR decoding are included:
     - N-gram aggregation on chrF `(Vamvas and Sennrich, 2024) <https://arxiv.org/abs/2402.04251>`_
     - Embedding aggregation on COMET (`Vamvas and Sennrich, 2024 <https://arxiv.org/abs/2402.04251>`_; `Deguchi et al., 2024 <https://arxiv.org/abs/2402.11197>`_)
 
-  - Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`cbmbr`
-  - Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`pmbr`
+  - Centroid-based MBR `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_: :code:`centroid_mbr`
+  - Probabilistic MBR `(Trabelsi et al., 2024) <https://arxiv.org/abs/2406.02832>`_: :code:`probabilistic_mbr`
 
 Related projects
 ================

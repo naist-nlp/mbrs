@@ -4,7 +4,7 @@ import torch
 from mbrs.decoders.aggregate_mbr import DecoderAggregateMBR
 from mbrs.metrics.comet import MetricCOMET
 
-from .cbmbr import DecoderCBMBR
+from .centroid_mbr import DecoderCentroidMBR
 
 SOURCE = [
     "これはテストです",
@@ -40,8 +40,8 @@ NCENTROIDS = 2
 class TestDecoderCBMBR:
     @pytest.mark.parametrize("kmeanspp", [True, False])
     def test_decode(self, metric_comet: MetricCOMET, kmeanspp: bool):
-        decoder = DecoderCBMBR(
-            DecoderCBMBR.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp), metric_comet
+        decoder = DecoderCentroidMBR(
+            DecoderCentroidMBR.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp), metric_comet
         )
         for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
             output = decoder.decode(hyps, refs, SOURCE[i], nbest=1)
@@ -72,8 +72,8 @@ class TestDecoderCBMBR:
     def test_decode_equivalent_with_aggregate(
         self, metric_comet: MetricCOMET, kmeanspp: bool
     ):
-        decoder_cbmbr = DecoderCBMBR(
-            DecoderCBMBR.Config(ncentroids=1, kmeanspp=kmeanspp), metric_comet
+        decoder_cbmbr = DecoderCentroidMBR(
+            DecoderCentroidMBR.Config(ncentroids=1, kmeanspp=kmeanspp), metric_comet
         )
         decoder_aggregate = DecoderAggregateMBR(
             DecoderAggregateMBR.Config(), metric_comet

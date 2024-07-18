@@ -6,8 +6,8 @@ register, get_decoder = registry.setup("decoder")
 
 from .mbr import DecoderMBR
 from .aggregate_mbr import DecoderAggregateMBR
-from .cbmbr import DecoderCBMBR
-from .pmbr import DecoderProbabilisticMBR
+from .centroid_mbr import DecoderCentroidMBR
+from .probabilistic_mbr import DecoderProbabilisticMBR
 from .pruning_mbr import DecoderPruningMBR
 from .rerank import DecoderRerank
 
@@ -17,7 +17,7 @@ __all__ = [
     "DecoderReferenceless",
     "DecoderMBR",
     "DecoderAggregateMBR",
-    "DecoderCBMBR",
+    "DecoderCentroidMBR",
     "DecoderProbabilisticMBR",
     "DecoderPruningMBR",
     "DecoderRerank",

@@ -3,7 +3,7 @@ import torch
 from mbrs.metrics.chrf import MetricChrF
 from mbrs.metrics.comet import MetricCOMET
 
-from .pmbr import DecoderProbabilisticMBR
+from .probabilistic_mbr import DecoderProbabilisticMBR
 
 SOURCE = [
     "これはテストです",

@@ -7,7 +7,7 @@ register, get_metric = registry.setup("metric")
 from .bleu import MetricBLEU
 from .chrf import MetricChrF
 from .comet import MetricCOMET
-from .cometqe import MetricCOMETQE
+from .cometkiwi import MetricCOMETkiwi
 from .ter import MetricTER
 from .xcomet import MetricXCOMET
 from .bleurt import MetricBLEURT
@@ -20,7 +20,7 @@ __all__ = [
     "MetricBLEU",
     "MetricChrF",
     "MetricCOMET",
-    "MetricCOMETQE",
+    "MetricCOMETkiwi",
     "MetricTER",
     "MetricXCOMET",
     "MetricBLEURT",

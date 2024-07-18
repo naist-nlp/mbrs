@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from mbrs.metrics import MetricCOMET, MetricCOMETQE, MetricXCOMET, MetricBLEURT
+from mbrs.metrics import MetricBLEURT, MetricCOMET, MetricCOMETkiwi, MetricXCOMET
 
 
 @pytest.fixture(scope="session")
@@ -10,8 +10,8 @@ def metric_comet():
 
 
 @pytest.fixture(scope="session")
-def metric_cometqe():
-    return MetricCOMETQE(MetricCOMETQE.Config())
+def metric_cometkiwi():
+    return MetricCOMETkiwi(MetricCOMETkiwi.Config())
 
 
 @pytest.mark.skipif(
