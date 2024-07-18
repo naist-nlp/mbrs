@@ -10,13 +10,13 @@ from mbrs import utils
 from . import MetricReferenceless, register
 
 
-@register("cometqe")
-class MetricCOMETQE(MetricReferenceless):
-    """COMET-QE metric class."""
+@register("cometkiwi")
+class MetricCOMETkiwi(MetricReferenceless):
+    """COMETkiwi metric class."""
 
     @dataclass
     class Config(MetricReferenceless.Config):
-        """COMET-QE metric configuration.
+        """COMETkiwi metric configuration.
 
         - model (str): Model name or path.
         - batch_size (int): Batch size.
@@ -31,7 +31,7 @@ class MetricCOMETQE(MetricReferenceless):
         bf16: bool = False
         cpu: bool = False
 
-    def __init__(self, cfg: MetricCOMETQE.Config):
+    def __init__(self, cfg: MetricCOMETkiwi.Config):
         self.cfg = cfg
         self.scorer = load_from_checkpoint(download_model(cfg.model))
         self.scorer.eval()

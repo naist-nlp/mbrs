@@ -15,7 +15,7 @@ from . import register
 from .mbr import DecoderMBR
 
 
-@register("pmbr")
+@register("probabilistic_mbr")
 class DecoderProbabilisticMBR(DecoderMBR):
     """Probablistic MBR decoder using alternating least squares (ALS) approximation.
 

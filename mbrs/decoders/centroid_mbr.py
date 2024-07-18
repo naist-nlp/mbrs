@@ -13,8 +13,8 @@ from . import register
 from .mbr import DecoderMBR
 
 
-@register("cbmbr")
-class DecoderCBMBR(DecoderMBR):
+@register("centroid_mbr")
+class DecoderCentroidMBR(DecoderMBR):
     """Centroid-Based MBR decoder class.
 
     - Time complexity: O(Nk)
@@ -57,7 +57,7 @@ class DecoderCBMBR(DecoderMBR):
         source: Optional[str] = None,
         nbest: int = 1,
         reference_lprobs: Optional[Tensor] = None,
-    ) -> DecoderCBMBR.Output:
+    ) -> DecoderCentroidMBR.Output:
         """Select the n-best hypotheses based on the strategy.
 
         Args:

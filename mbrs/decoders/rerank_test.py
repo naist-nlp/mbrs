@@ -1,6 +1,6 @@
 import torch
 
-from mbrs.metrics.cometqe import MetricCOMETQE
+from mbrs.metrics.cometkiwi import MetricCOMETkiwi
 
 from .rerank import DecoderRerank
 
@@ -23,8 +23,8 @@ SCORES = torch.Tensor([0.86415, 0.86415, 0.86415, 0.29771])
 
 
 class TestDecoderRerank:
-    def test_decode(self, metric_cometqe: MetricCOMETQE):
-        decoder = DecoderRerank(DecoderRerank.Config(), metric_cometqe)
+    def test_decode(self, metric_cometkiwi: MetricCOMETkiwi):
+        decoder = DecoderRerank(DecoderRerank.Config(), metric_cometkiwi)
         for i, hyps in enumerate(HYPOTHESES):
             output = decoder.decode(hyps, SOURCE, nbest=1)
             assert output.idx[0] == BEST_INDICES[i]
