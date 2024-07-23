@@ -24,6 +24,7 @@ mypy = "^1.8.0"
 ptpython = "^3.0.25"
 pytest = "^7.4.4"
 pytest-cov = "^4.1.0"
+pre-commit = "^3.7.1"
 
 [tool.poetry.scripts]
 mbrs-decode = "mbrs.cli.decode:cli_main"
