@@ -33,8 +33,7 @@ class DecoderPruningMBR(DecoderMBR):
         - sampling_shceduler (list[int]): Sample size scheduler. For each step, the
           number of samples will be the t-th number.
         - num_boostrap_samples (int): Number of boostrap samples.
-        - seed (int): Random seed for bootstrap sampling. The random numbers are
-          generated using PCG-64.
+        - seed (int): Random seed for bootstrap sampling.
         """
 
         alpha: float = 0.99
