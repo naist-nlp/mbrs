@@ -105,7 +105,7 @@ This tutorial explains how to define a new metric using an example of :code:`Met
               """
               return self.scorer.sentence_score(hypothesis, [reference]).score
 
-4. Register the class to call from CLI.
+4. Register the class to be called from CLI.
 
    - Just add :code:`@register("ter")` to the class definition.
 
@@ -156,4 +156,4 @@ This tutorial explains how to define a new metric using an example of :code:`Met
 Notes
 ~~~~~
 
-- All methods should have the same input/output types as the base class.
+- All methods should have the same types for both inputs and outputs as the base class.

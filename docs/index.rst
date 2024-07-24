@@ -2,21 +2,26 @@ mbrs documentation
 ==================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Command-line interface:
+   :maxdepth: 1
+   :caption: Getting started:
 
+   installation
    cli
+   api_python
 
 .. toctree::
    :maxdepth: 1
    :caption: Extending mbrs:
 
    custom_metric
+   custom_decoder
+
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Library Reference:
+   :maxdepth: 1
+   :caption: References:
 
+   cli_help
    source/mbrs
 
 * :ref:`genindex`
