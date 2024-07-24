@@ -8,6 +8,12 @@ mbrs documentation
    cli
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Extending mbrs:
+
+   custom_metric
+
+.. toctree::
    :maxdepth: 3
    :caption: Library Reference:
 
