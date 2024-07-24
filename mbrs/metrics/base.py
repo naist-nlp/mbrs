@@ -13,7 +13,7 @@ from mbrs import functional, timer
 class MetricBase(abc.ABC):
     """Base metric class."""
 
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: MetricBase.Config):
         self.cfg = cfg
 
     HIGHER_IS_BETTER: bool = True

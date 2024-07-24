@@ -16,5 +16,5 @@ repos:
     rev: v0.5.4
     hooks:
     -   id: ruff
-        args: ["--fix", "--unsafe-fixes", "--extend-select", "I", "--ignore", "E203,E501,F401"]
+        args: ["--fix", "--unsafe-fixes", "--extend-select", "I", "--ignore", "E203,E402,E501,F401"]
     -   id: ruff-format
