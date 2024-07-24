@@ -14,7 +14,7 @@ build:
     post_create_environment:
       # Install poetry
       # https://python-poetry.org/docs/#installing-manually
-      - pip install poetry
+      - python -m pip install poetry
     post_install:
       # Install dependencies with 'docs' dependency group
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
@@ -22,7 +22,7 @@ build:
       # See https://github.com/readthedocs/readthedocs.org/pull/11152/
       - VIRTUAL_ENV=$READTHEDOCS_VIRTUALENV_PATH poetry install --with docs
     pre_build:
-      - sphinx-apidoc --remove-old -d1 -Tfe -o docs/source ./ '**/*_test.py' '**/conftest.py'
+      - sphinx-apidoc --remove-old -d1 -Tfe -o docs/source ./ "$READTHEDOCS_REPOSITORY_PATH/**/*_test.py" "$READTHEDOCS_REPOSITORY_PATH/**/conftest.py"
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
