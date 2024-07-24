@@ -19,6 +19,7 @@ class DecoderCentroidMBR(DecoderMBR):
 
     - Time complexity: O(Nk)
     - Space complexity: O(Nk)
+
     where k << N.
 
     References:
@@ -27,7 +28,7 @@ class DecoderCentroidMBR(DecoderMBR):
         https://arxiv.org/abs/2402.11197
     """
 
-    def __init__(self, cfg: Config, metric: MetricCacheable) -> None:
+    def __init__(self, cfg: DecoderCentroidMBR.Config, metric: MetricCacheable) -> None:
         super().__init__(cfg, metric)
         self.kmeans = Kmeans(kmeanspp=self.cfg.kmeanspp)
 
