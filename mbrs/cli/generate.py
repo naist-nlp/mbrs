@@ -27,7 +27,7 @@ def buffer_lines(input_stream: Iterable[str], buffer_size: int = 64):
         yield buf
 
 
-def parse_args() -> Namespace:
+def get_argparser() -> ArgumentParser:
     parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
     # fmt: off
     parser.add_argument("input", nargs="?", default="-",
@@ -70,7 +70,11 @@ def parse_args() -> Namespace:
     parser.add_argument("--width", "-w", type=int, default=1,
                         help="Number of digits for values of float point.")
     # fmt: on
-    return parser.parse_args()
+    return parser
+
+
+def parse_args() -> Namespace:
+    return get_argparser().parse_args()
 
 
 def main(args: Namespace) -> None:

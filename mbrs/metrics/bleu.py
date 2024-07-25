@@ -29,7 +29,7 @@ class MetricBLEU(MetricAggregatable):
         - smooth_value (float, optional): The smoothing value for `floor` and `add-k` methods. `None` falls back to default value.
         - max_ngram_order (int): If given, it overrides the maximum n-gram order (default: 4) when computing precisions.
         - effective_order (bool): If `True`, stop including n-gram orders for which precision is 0.
-            This should be `True`, if sentence-level BLEU will be computed. (default: True)
+          This should be `True`, if sentence-level BLEU will be computed. (default: True)
         - trg_lang (str): An optional language code to raise potential tokenizer warnings.
         """
 
@@ -152,7 +152,7 @@ class MetricBLEU(MetricAggregatable):
         tok_count = 0
         for i, hypothesis in enumerate(hypotheses):
             with timer.measure("expectation"):
-                if not self.scorer._force and hypothesis.endswith(' .'):
+                if not self.scorer._force and hypothesis.endswith(" ."):
                     tok_count += 1
 
                 hypothesis = self.scorer._preprocess_segment(hypothesis)

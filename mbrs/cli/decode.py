@@ -77,9 +77,11 @@ class CommonArguments:
     width: int = field(default=1, alias=["-w"])
 
 
-def parse_args() -> Namespace:
+def get_argparser() -> ArgumentParser:
     meta_parser = ArgumentParser(add_help=False)
     meta_parser.add_arguments(CommonArguments, "common")
+    for _field in meta_parser._wrappers[0].fields:
+        _field.required = False
     known_args, _ = meta_parser.parse_known_args()
     metric_type = get_metric(known_args.common.metric)
     decoder_type = get_decoder(known_args.common.decoder)
@@ -88,7 +90,12 @@ def parse_args() -> Namespace:
     parser.add_arguments(CommonArguments, "common")
     parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
     parser.add_arguments(decoder_type.Config, "decoder", prefix="decoder.")
-    return parser.parse_args()
+    parser._preprocessing(sys.argv[1:])
+    return parser
+
+
+def parse_args() -> Namespace:
+    return get_argparser().parse_args()
 
 
 def main(args: Namespace) -> None:

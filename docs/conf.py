@@ -25,6 +25,8 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
+    "sphinxarg.ext",
+    "sphinx_copybutton",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),

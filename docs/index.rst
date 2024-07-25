@@ -1,11 +1,29 @@
+mbrs: A library for MBR decoding
+================================
 
-mbrs documentation
-==================
+*mbrs* is a library for minimum bayes risk (MBR) decoding, implementing various methods and metrics.
 
 .. toctree::
-   :maxdepth: 3
-   :caption: Library Reference:
+   :maxdepth: 1
+   :caption: Getting started:
 
+   installation
+   cli
+   api_python
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Extending mbrs:
+
+   custom_metric
+   custom_decoder
+   timer
+
+.. toctree::
+   :maxdepth: 1
+   :caption: References:
+
+   cli_help
    source/mbrs
 
 * :ref:`genindex`
