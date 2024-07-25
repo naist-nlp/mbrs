@@ -11,7 +11,8 @@ The below example implements the naive MBR decoding and extends the output objec
 
    - :code:`DecoderReferenceBased` is mainly used for MBR decoding that returns the N most probable hypotheses using sets of hypotheses and pseudo-references.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 1-
 
       from mbrs.decoders.base import DecoderReferenceBased
 
@@ -23,7 +24,8 @@ The below example implements the naive MBR decoding and extends the output objec
 
    - Configuration dataclass :code:`DecoderMBRWithAllScores.Config` should inherit that of the parent class for consistency.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 1,9-
 
       from dataclasses import dataclass
 
@@ -42,7 +44,8 @@ The below example implements the naive MBR decoding and extends the output objec
 
 3. Child classes of :code:`DecoderReferenceBased` requires to implement the :code:`decode()` method.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 2,16-
 
       from dataclasses import dataclass
       from typing import Optional
@@ -81,7 +84,8 @@ The below example implements the naive MBR decoding and extends the output objec
 
    - :code:`DecoderMBRWithAllScores.Output` needs to inherit the parent output dataclass.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 4,16-18,33-36,42
 
       from dataclasses import dataclass
       from typing import Optional
@@ -131,7 +135,8 @@ The below example implements the naive MBR decoding and extends the output objec
 
    - Just add :code:`@register("mbr_with_all_scores")` to the class definition.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 9
 
       from dataclasses import dataclass
       from typing import Optional

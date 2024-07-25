@@ -11,7 +11,8 @@ This tutorial explains how to define a new metric using an example of :code:`Met
    - :code:`Metric` calculates the score between a hypothesis and reference with optionally using a source.
    - If the lower score means better, the class variable :code:`HIGHER_IS_BETTER` should be set to :code:`False`.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 1-
 
       from mbrs.metrics.base import Metric
 
@@ -26,7 +27,8 @@ This tutorial explains how to define a new metric using an example of :code:`Met
    - Configuration dataclass :code:`MetricTER.Config` should inherit that of the parent class for consistency.
    - :code:`__init__()` receives an instance of configuration dataclass :code:`cfg: MetricTER.Config` and setup the scorer function.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 1-3,13-
 
       from dataclasses import dataclass
 
@@ -62,7 +64,8 @@ This tutorial explains how to define a new metric using an example of :code:`Met
    - In the default, :code:`score()` is called iteratively in the MBR decoding.
    - If the metric can compute pairwise scores between hypotheses and pseudo-references in parallel, it would be better to override :code:`pairwise_scores()` to allow batch computation.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 1-3,30-
 
       from dataclasses import dataclass
 
@@ -94,22 +97,14 @@ This tutorial explains how to define a new metric using an example of :code:`Met
               )
 
           def score(self, hypothesis: str, reference: str, *_) -> float:
-              """Calculate the score of the given hypothesis.
-
-              Args:
-                  hypothesis (str): Hypothesis.
-                  reference (str): Reference.
-
-              Returns:
-                  float: The score of the given hypothesis.
-              """
               return self.scorer.sentence_score(hypothesis, [reference]).score
 
 4. Register the class to be called from CLI.
 
    - Just add :code:`@register("ter")` to the class definition.
 
-   .. code:: python
+   .. code-block:: python
+      :emphasize-lines: 8
 
       from dataclasses import dataclass
 
@@ -142,15 +137,6 @@ This tutorial explains how to define a new metric using an example of :code:`Met
               )
 
           def score(self, hypothesis: str, reference: str, *_) -> float:
-              """Calculate the score of the given hypothesis.
-
-              Args:
-                  hypothesis (str): Hypothesis.
-                  reference (str): Reference.
-
-              Returns:
-                  float: The score of the given hypothesis.
-              """
               return self.scorer.sentence_score(hypothesis, [reference]).score
 
 .. note::
