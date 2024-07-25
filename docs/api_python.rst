@@ -3,7 +3,10 @@ Python interface
 
 mbrs is implemented in Python and PyTorch.
 
-The references of this library can be found in :doc:`here <./source/mbrs>`.
+.. seealso::
+
+   :doc:`References of Python API <./source/mbrs>`
+        Detailed documentation of Python API.
 
 Examples
 --------

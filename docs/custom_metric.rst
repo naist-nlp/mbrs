@@ -153,7 +153,6 @@ This tutorial explains how to define a new metric using an example of :code:`Met
               """
               return self.scorer.sentence_score(hypothesis, [reference]).score
 
-Notes
-~~~~~
+.. note::
 
-- All methods should have the same types for both inputs and outputs as the base class.
+   All methods should have the same types for both inputs and outputs as the base class.

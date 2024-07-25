@@ -3,7 +3,10 @@ Command-line interface
 
 mbrs provides useful command-line interface (CLI) scripts.
 
-Details of options can be found in :doc:`here <./cli_help>` or :code:`--help` option.
+.. seealso::
+
+   :doc:`Manual of CLI options <./cli_help>`
+        Detailed documentation of CLI options.
 
 Overview
 --------

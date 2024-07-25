@@ -178,7 +178,6 @@ The below example implements the naive MBR decoding and extends the output objec
                   all_scores=all_scores,
               )
 
-Notes
-~~~~~
+.. note::
 
-- All methods should have the same types for both inputs and outputs as the base class.
+   All methods should have the same types for both inputs and outputs as the base class.
