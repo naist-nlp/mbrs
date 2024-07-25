@@ -157,38 +157,31 @@ def main(args: Namespace) -> None:
                 for s in tokenizer.batch_decode(model_outputs, skip_special_tokens=True)
             ]
 
-        scores = model_outputs.scores
+        sequences = model_outputs.sequences.cpu()
+        scores = tuple([s.cpu().float() for s in model_outputs.scores])
         max_length = len(scores)
         if hasattr(tokenizer, "pad_token_id"):
             pad_token_id = tokenizer.pad_token_id
             for s in scores:
                 s[:, pad_token_id] = 0.0
-            sequence_lengths = max_length - (
-                model_outputs.sequences.eq(pad_token_id)
-            ).sum(dim=-1)
+            sequence_lengths = max_length - (sequences.eq(pad_token_id)).sum(dim=-1)
         else:
             sequence_lengths = torch.full(
                 (model_outputs.sequences.size(0),), fill_value=max_length
             )
 
-        transition_scores = (
-            model.compute_transition_scores(
-                model_outputs.sequences,
-                model_outputs.scores,
-                beam_indices=model_outputs.get("beam_indices", None),
-                normalize_logits=True,
-            )
-            .cpu()
-            .float()
+        transition_scores = model.compute_transition_scores(
+            sequences,
+            scores,
+            beam_indices=model_outputs.get("beam_indices", None),
+            normalize_logits=True,
         )
         lprobs = transition_scores.sum(dim=-1)
         length_normalized_lprobs = lprobs / (sequence_lengths**length_penalty)
         return [
             Sample(text, lprob=lprob, length_normalized_lprob=length_normalized_lprob)
             for text, lprob, length_normalized_lprob in zip(
-                tokenizer.batch_decode(
-                    model_outputs.sequences, skip_special_tokens=True
-                ),
+                tokenizer.batch_decode(sequences, skip_special_tokens=True),
                 lprobs.tolist(),
                 length_normalized_lprobs.tolist(),
             )
