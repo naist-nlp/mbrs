@@ -17,7 +17,7 @@ mbrs: A library for MBR decoding
 
    custom_metric
    custom_decoder
-
+   timer
 
 .. toctree::
    :maxdepth: 1

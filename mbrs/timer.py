@@ -4,13 +4,13 @@ Timer module including some useful global objects.
 Example:
     >>> from mbrs import timer
     >>> for hyps, src in zip(hypotheses, sources):
-            with timer.measure("encode/hypotheses") as t:
-                h = metric.encode(hyps)
-            t.set_delta_ncalls(len(hyps))
-            with timer.measure("encode/source"):
-                s = metric.encode([src])
-            with timer.measure("score"):
-                scores = metric.score(h, s)
+    ...     with timer.measure("encode/hypotheses") as t:
+    ...         h = metric.encode(hyps)
+    ...     t.set_delta_ncalls(len(hyps))
+    ...     with timer.measure("encode/source"):
+    ...         s = metric.encode([src])
+    ...     with timer.measure("score"):
+    ...         scores = metric.score(h, s)
     >>> res = timer.aggregate().result()  # return the result table
 """
 
@@ -28,16 +28,16 @@ class Stopwatch:
     Example:
         >>> timer = Stopwatch()
         >>> for i in range(10):
-                with timer():
-                    time.sleep(1)
+        ...     with timer():
+        ...         time.sleep(1)
         >>> print(f"{timer.elapsed_time:.3f}")
         10.000
 
         >>> timer = Stopwatch()
         >>> for i in range(10):
-                with timer() as t:
-                    time.sleep(2)
-                    t.set_delta_ncalls(2)
+        ...     with timer() as t:
+        ...         time.sleep(2)
+        ...         t.set_delta_ncalls(2)
         >>> print(f"{timer.elapsed_time:.3f}")
         20.000
         >>> print(f"{timer.ncalls}")
@@ -90,11 +90,11 @@ class StopwatchDict(defaultdict[str, Stopwatch]):
     Example:
         >>> timers = StopwatchDict()
         >>> for i in range(10):
-                with timers("A"):
-                    time.sleep(1)
-            for i in range(3):
-                with timers("B"):
-                    time.sleep(1)
+        ...     with timers("A"):
+        ...         time.sleep(1)
+        >>> for i in range(3):
+        ...     with timers("B"):
+        ...         time.sleep(1)
         >>> print(f"{timers.total}")
         {"A": 10.000, "B": 3.000}
     """
