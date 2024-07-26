@@ -118,7 +118,11 @@ def main(args: Namespace) -> None:
             model.bfloat16()
         model.cuda()
 
-    generation_kwargs = {"max_length": args.max_length, "min_length": args.min_length}
+    generation_kwargs = {
+        "max_length": args.max_length,
+        "min_length": args.min_length,
+        "return_dict_in_generate": True,
+    }
     length_penalty = getattr(model.generation_config, "length_penalty", 1.0)
     if args.length_penalty is not None:
         generation_kwargs["length_penalty"] = args.length_penalty
@@ -126,7 +130,6 @@ def main(args: Namespace) -> None:
 
     if args.lprobs is not None or args.length_normalized_lprobs is not None:
         generation_kwargs["output_scores"] = True
-        generation_kwargs["return_dict_in_generate"] = True
 
     if isinstance(model, M2M100ForConditionalGeneration):
         tokenizer.src_lang = src_lang
@@ -154,11 +157,13 @@ def main(args: Namespace) -> None:
         if model_outputs.scores is None:
             return [
                 Sample(s)
-                for s in tokenizer.batch_decode(model_outputs, skip_special_tokens=True)
+                for s in tokenizer.batch_decode(
+                    model_outputs.sequences, skip_special_tokens=True
+                )
             ]
 
-        sequences = model_outputs.sequences.cpu()
-        scores = tuple([s.cpu().float() for s in model_outputs.scores])
+        sequences = model_outputs.sequences
+        scores = tuple([s.log_softmax(dim=-1) for s in model_outputs.scores])
         max_length = len(scores)
         if hasattr(tokenizer, "pad_token_id"):
             pad_token_id = tokenizer.pad_token_id
@@ -167,14 +172,11 @@ def main(args: Namespace) -> None:
             sequence_lengths = max_length - (sequences.eq(pad_token_id)).sum(dim=-1)
         else:
             sequence_lengths = torch.full(
-                (model_outputs.sequences.size(0),), fill_value=max_length
+                (sequences.size(0),), fill_value=max_length, device=sequences.device
             )
 
         transition_scores = model.compute_transition_scores(
-            sequences,
-            scores,
-            beam_indices=model_outputs.get("beam_indices", None),
-            normalize_logits=True,
+            sequences, scores, beam_indices=model_outputs.get("beam_indices", None)
         )
         lprobs = transition_scores.sum(dim=-1)
         length_normalized_lprobs = lprobs / (sequence_lengths**length_penalty)
@@ -182,8 +184,8 @@ def main(args: Namespace) -> None:
             Sample(text, lprob=lprob, length_normalized_lprob=length_normalized_lprob)
             for text, lprob, length_normalized_lprob in zip(
                 tokenizer.batch_decode(sequences, skip_special_tokens=True),
-                lprobs.tolist(),
-                length_normalized_lprobs.tolist(),
+                lprobs.cpu().tolist(),
+                length_normalized_lprobs.cpu().tolist(),
             )
         ]
 
