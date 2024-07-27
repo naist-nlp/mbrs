@@ -79,6 +79,8 @@ def get_argparser() -> ArgumentParser:
                         help="Random number seed.")
     parser.add_argument("--quiet", "-q", action="store_true",
                         help="No report statistics.")
+    parser.add_argument("--report", default="-", type=FileType("w"),
+                        help="Report file.")
     parser.add_argument("--report_format", type=str, default="rounded_outline",
                         choices=tabulate_formats,
                         help="Report runtime statistics.")
@@ -359,7 +361,7 @@ def main(args: Namespace) -> None:
             tablefmt=args.report_format,
             floatfmt=f".{args.width}f",
         )
-        print(table)
+        print(table, file=args.report)
 
 
 def cli_main():
