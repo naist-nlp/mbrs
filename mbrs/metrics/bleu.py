@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import concurrent.futures
+import itertools
 from collections import Counter
 from dataclasses import dataclass
 from typing import Optional
@@ -77,6 +79,33 @@ class MetricBLEU(MetricAggregatable):
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
 
+    def pairwise_scores(
+        self, hypotheses: list[str], references: list[str], *_
+    ) -> Tensor:
+        """Calculate the pairwise scores.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+
+        Returns:
+            Tensor: Score matrix of shape `(H, R)`, where `H` is the number
+              of hypotheses and `R` is the number of references.
+        """
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses) * len(references))
+
+                return Tensor(
+                    list(
+                        executor.map(
+                            self.score,
+                            *zip(*itertools.product(hypotheses, references)),
+                            chunksize=len(hypotheses),
+                        )
+                    )
+                ).view(len(hypotheses), len(references))
+
     def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
         """Calculate the corpus-level score.
 
@@ -149,12 +178,8 @@ class MetricBLEU(MetricAggregatable):
             )
 
         expected_scores = torch.zeros((len(hypotheses),))
-        tok_count = 0
         for i, hypothesis in enumerate(hypotheses):
             with timer.measure("expectation"):
-                if not self.scorer._force and hypothesis.endswith(" ."):
-                    tok_count += 1
-
                 hypothesis = self.scorer._preprocess_segment(hypothesis)
                 # Extract n-grams for the hypothesis
                 hyp_ngrams, hyp_len = extract_all_word_ngrams(
