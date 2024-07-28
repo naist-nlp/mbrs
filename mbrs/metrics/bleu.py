@@ -92,12 +92,18 @@ class MetricBLEU(MetricAggregatable):
     def _score_worker(hypothesis: str, reference: str, *_) -> float:
         """Calculate the score of the given hypothesis.
 
+        Beacause ja-mecab tokenizer cannot be pickled, this method is necessary to use
+        multiprocessing.
+
         Args:
             hypothesis (str): Hypothesis.
             reference (str): Reference.
 
         Returns:
             float: The score of the given hypothesis.
+
+        Todo:
+            - Replace this method with a better logic.
         """
         return MetricBLEU._score_worker.scorer.sentence_score(
             hypothesis, [reference]
