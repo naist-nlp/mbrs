@@ -44,6 +44,8 @@ class MetricBLEU(MetricAggregatable):
         effective_order: bool = True
         trg_lang: str = ""
 
+    cfg: Config
+
     @dataclass
     class AggregatedReference:
         """Aggregated reference representation.
@@ -56,7 +58,12 @@ class MetricBLEU(MetricAggregatable):
         length: float
 
     def __init__(self, cfg: MetricBLEU.Config):
-        self.scorer = BLEU(
+        super().__init__(cfg)
+        self.scorer = self.__initialize_scorer(cfg)
+
+    @staticmethod
+    def __initialize_scorer(cfg: MetricBLEU.Config) -> BLEU:
+        scorer = BLEU(
             lowercase=cfg.lowercase,
             force=cfg.force,
             tokenize=cfg.tokenize,
@@ -66,6 +73,8 @@ class MetricBLEU(MetricAggregatable):
             effective_order=cfg.effective_order,
             trg_lang=cfg.trg_lang,
         )
+        MetricBLEU._score_worker.scorer = scorer
+        return scorer
 
     def score(self, hypothesis: str, reference: str, *_) -> float:
         """Calculate the score of the given hypothesis.
@@ -78,6 +87,21 @@ class MetricBLEU(MetricAggregatable):
             float: The score of the given hypothesis.
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
+
+    @staticmethod
+    def _score_worker(hypothesis: str, reference: str, *_) -> float:
+        """Calculate the score of the given hypothesis.
+
+        Args:
+            hypothesis (str): Hypothesis.
+            reference (str): Reference.
+
+        Returns:
+            float: The score of the given hypothesis.
+        """
+        return MetricBLEU._score_worker.scorer.sentence_score(
+            hypothesis, [reference]
+        ).score
 
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], *_
@@ -92,14 +116,16 @@ class MetricBLEU(MetricAggregatable):
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(
+            initializer=self.__initialize_scorer, initargs=(self.cfg,)
+        ) as executor:
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(hypotheses) * len(references))
 
                 return Tensor(
                     list(
                         executor.map(
-                            self.score,
+                            self._score_worker,
                             *zip(*itertools.product(hypotheses, references)),
                             chunksize=len(hypotheses),
                         )
