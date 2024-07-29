@@ -115,3 +115,19 @@ class TestMetricBLEU:
             atol=0.0005,
             rtol=1e-4,
         )
+
+    def test_expected_scores_reference_aggregation_empty_inputs(self):
+        metric = MetricBLEU(MetricBLEU.Config(effective_order=True))
+        hyps = ["thank you", ""]
+        refs = ["thank you so much", "", "thank you.", "thank you", ""]
+        expected_scores = metric.expected_scores_reference_aggregation(hyps, refs)
+        torch.testing.assert_close(
+            expected_scores, torch.Tensor([60.0, 0.0]), atol=0.0005, rtol=1e-4
+        )
+
+        expected_scores = metric.expected_scores_reference_aggregation(
+            hyps, refs, reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs))
+        )
+        torch.testing.assert_close(
+            expected_scores, torch.Tensor([60.0, 0.0]), atol=0.0005, rtol=1e-4
+        )

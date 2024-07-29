@@ -241,7 +241,7 @@ class MetricBLEU(MetricAggregatable):
         score = bp * math.exp(
             sum(
                 [
-                    math.log(p) if p != 0.0 else -9999999999
+                    math.log(p) if p > 0.0 else -9999999999.0
                     for p in precisions[:eff_order]
                 ]
             )
@@ -277,6 +277,8 @@ class MetricBLEU(MetricAggregatable):
         expected_reference_length = sum(
             [
                 math.exp(math.log(stat["ref_lens"][0]) + lprob)
+                if stat["ref_lens"][0] > 0.0
+                else 0.0
                 for stat, lprob in zip(reference_stats, lprobs)
             ]
         )
