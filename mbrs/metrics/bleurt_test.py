@@ -52,6 +52,18 @@ class TestMetricBLEURT:
             rtol=1e-6,
         )
 
+    def test_pairwise_scores_empty_inputs(self, metric_bleurt: MetricBLEURT):
+        pairwise_scores = metric_bleurt.pairwise_scores(
+            ["this is a test", ""], ["", "this is a test", ""]
+        )
+        assert tuple(pairwise_scores.shape) == (2, 3)
+        torch.testing.assert_close(
+            pairwise_scores[0][1],
+            torch.tensor(0.97992).to(metric_bleurt.device),
+            atol=0.0005 / 100,
+            rtol=1e-6,
+        )
+
     def test_expected_scores(self, metric_bleurt: MetricBLEURT):
         expected_scores = metric_bleurt.expected_scores(HYPOTHESES, REFERENCES)
         torch.testing.assert_close(

@@ -9,6 +9,7 @@ from bleurt_pytorch import (
     BleurtTokenizer,
 )
 from torch import Tensor
+from transformers.tokenization_utils import BatchEncoding, EncodedInputPair
 
 from mbrs import timer
 
@@ -127,6 +128,40 @@ class MetricBLEURT(Metric):
                 scores.append(model_output.logits.flatten())
         return torch.cat(scores).view(len(hypotheses))
 
+    def __collate(self, batch_ids_pairs: list[EncodedInputPair]) -> BatchEncoding:
+        """
+        Prepares a sequence of input id, or a pair of sequences of inputs ids so that it can be used by the model. It
+        adds special tokens, truncates sequences if overflowing while taking into account the special tokens and
+        manages a moving window (with user defined stride) for overflowing tokens
+
+        Args:
+            batch_ids_pairs (list[EncodedInputPair]): List of tokenized input ids or input ids pairs.
+        """
+
+        batch = {}
+        for first_ids, second_ids in batch_ids_pairs:
+            example = self.tokenizer.prepare_for_model(
+                first_ids,
+                second_ids,
+                add_special_tokens=True,
+                padding=False,
+                truncation=True,
+                max_length=self.max_length,
+                pad_to_multiple_of=None,
+                return_attention_mask=False,
+                return_tensors=None,
+            )
+
+            for key, value in example.items():
+                if key not in batch:
+                    batch[key] = []
+                batch[key].append(value)
+
+        batch = self.tokenizer.pad(
+            batch, padding=True, max_length=self.max_length, return_tensors="pt"
+        )
+        return batch
+
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], *_
     ) -> Tensor:
@@ -152,13 +187,7 @@ class MetricBLEURT(Metric):
         while batch := list(itertools.islice(pairwise_iter, self.cfg.batch_size)):
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(batch))
-                batch = self.tokenizer.batch_encode_plus(
-                    batch,
-                    truncation=True,
-                    padding=True,
-                    max_length=self.max_length,
-                    return_tensors="pt",
-                ).to(self.device)
+                batch = self.__collate(batch).to(self.device)
                 model_output = self.scorer(**batch)
                 scores.append(model_output.logits.flatten())
         return torch.cat(scores).view(len(references), len(hypotheses)).transpose(0, 1)
