@@ -61,6 +61,17 @@ class TestMetricBLEU:
             rtol=1e-4,
         )
 
+    def test_expected_scores_ja(self):
+        metric = MetricBLEU(
+            MetricBLEU.Config(tokenize="ja-mecab", effective_order=True)
+        )
+        hyps = ["ありがとうございます", "どうも"]
+        refs = ["ありがとう", "どうもありがとうございます"]
+        expected_scores = metric.expected_scores(hyps, refs)
+        torch.testing.assert_close(
+            expected_scores, torch.Tensor([49.5846, 2.4894]), atol=0.0005, rtol=1e-4
+        )
+
     def test_corpus_score(self):
         hyps = [
             "this is a test",
