@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import itertools
+import math
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Optional
@@ -127,16 +128,18 @@ class MetricChrF(MetricAggregatable):
             [[ref] for ref in references]
         )[0]["ref_ngrams"]
 
-        reference_probs = [1.0 / len(references)] * len(references)
+        lprobs = [-math.log(len(references))] * len(references)
         if reference_lprobs is not None:
-            reference_probs = reference_lprobs.softmax(dim=-1).tolist()
+            lprobs = reference_lprobs.log_softmax(dim=-1).tolist()
 
         acc_ngrams: defaultdict[int, Counter[str]] = defaultdict(Counter)
         for i, ngrams in enumerate(reference_ngrams):
             for order, ngram_counts in enumerate(ngrams):
                 for ngram in ngram_counts:
                     # Note: Counter has float values.
-                    ngram_counts[ngram] *= reference_probs[i]
+                    ngram_counts[ngram] = math.exp(
+                        math.log(ngram_counts[ngram]) + lprobs[i]
+                    )
                 acc_ngrams[order] += ngram_counts
 
         return self.AggregatedReference(
