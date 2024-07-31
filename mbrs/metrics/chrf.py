@@ -124,13 +124,15 @@ class MetricChrF(MetricAggregatable):
         Returns:
             MetricChrF.AggregatedReference: Aggregated reference representation.
         """
+        num_references = len(references)
         reference_ngrams: list[list[Counter[str]]] = self.scorer._cache_references(
             [[ref] for ref in references]
         )[0]["ref_ngrams"]
 
-        lprobs = [-math.log(len(references))] * len(references)
         if reference_lprobs is not None:
             lprobs = reference_lprobs.log_softmax(dim=-1).tolist()
+        else:
+            lprobs = [-math.log(num_references)] * num_references
 
         acc_ngrams: defaultdict[int, Counter[str]] = defaultdict(Counter)
         for i, ngrams in enumerate(reference_ngrams):

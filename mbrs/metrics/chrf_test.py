@@ -79,3 +79,19 @@ class TestMetricChrF:
         torch.testing.assert_close(
             expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
         )
+
+    def test_expected_scores_reference_aggregation_empty_inputs(self):
+        metric = MetricChrF(MetricChrF.Config())
+        hyps = ["thank you", ""]
+        refs = ["thank you so much", "", "thank you.", "thank you", ""]
+        expected_scores = metric.expected_scores_reference_aggregation(hyps, refs)
+        torch.testing.assert_close(
+            expected_scores, torch.Tensor([68.2679, 0.0]), atol=0.0005, rtol=1e-4
+        )
+
+        expected_scores = metric.expected_scores_reference_aggregation(
+            hyps, refs, reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs))
+        )
+        torch.testing.assert_close(
+            expected_scores, torch.Tensor([68.2679, 0.0]), atol=0.0005, rtol=1e-4
+        )
