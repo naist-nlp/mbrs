@@ -171,11 +171,13 @@ def main(args: Namespace) -> None:
             refs = [r.strip() for r in references[i * num_refs : (i + 1) * num_refs]]
             ref_lprobs = None
             if reference_lprobs is not None:
-                ref_lprobs = torch.Tensor(
+                ref_lprobs = torch.tensor(
                     [
                         float(r.strip())
                         for r in reference_lprobs[i * num_refs : (i + 1) * num_refs]
-                    ]
+                    ],
+                    dtype=torch.float32,
+                    device=metric.device,
                 )
             with timer.measure("total"):
                 output = decoder.decode(
