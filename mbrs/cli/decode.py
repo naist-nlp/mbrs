@@ -171,12 +171,24 @@ def main(args: Namespace) -> None:
             refs = [r.strip() for r in references[i * num_refs : (i + 1) * num_refs]]
             ref_lprobs = None
             if reference_lprobs is not None:
-                ref_lprobs = torch.Tensor(
-                    [
-                        float(r.strip())
-                        for r in reference_lprobs[i * num_refs : (i + 1) * num_refs]
-                    ]
+                ref_lprobs = [
+                    float(r.strip())
+                    for r in reference_lprobs[i * num_refs : (i + 1) * num_refs]
+                ]
+
+                # Deduplicate the same elements for the model-based estimation.
+                # Note that we regard pairs of `(reference, log-prob of reference)` that are
+                # equal as the same samples.
+                # We use `dict.fromkeys()` instead of `set()`; thus, the order is kept.
+                uniq_refs, uniq_ref_lprobs = tuple(
+                    zip(*dict.fromkeys(zip(refs, ref_lprobs)).keys())
                 )
+
+                refs = list(uniq_refs)
+                ref_lprobs = torch.tensor(
+                    list(uniq_ref_lprobs), dtype=torch.float32, device=metric.device
+                )
+
             with timer.measure("total"):
                 output = decoder.decode(
                     hyps,

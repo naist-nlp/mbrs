@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import concurrent.futures
 import itertools
+import math
 from collections import Counter
 from dataclasses import dataclass
 from typing import Optional
 
 import torch
-from sacrebleu.metrics.bleu import BLEU
+from sacrebleu.metrics.bleu import BLEU, MAX_NGRAM_ORDER
 from sacrebleu.metrics.helpers import extract_all_word_ngrams
 from torch import Tensor
 
@@ -59,10 +60,10 @@ class MetricBLEU(MetricAggregatable):
 
     def __init__(self, cfg: MetricBLEU.Config):
         super().__init__(cfg)
-        self.scorer = self.__initialize_scorer(cfg)
+        self.scorer = self._initialize_bleu(cfg)
 
     @staticmethod
-    def __initialize_scorer(cfg: MetricBLEU.Config) -> BLEU:
+    def _initialize_bleu(cfg: MetricBLEU.Config) -> BLEU:
         scorer = BLEU(
             lowercase=cfg.lowercase,
             force=cfg.force,
@@ -123,7 +124,7 @@ class MetricBLEU(MetricAggregatable):
               of hypotheses and `R` is the number of references.
         """
         with concurrent.futures.ProcessPoolExecutor(
-            initializer=self.__initialize_scorer, initargs=(self.cfg,)
+            initializer=self._initialize_bleu, initargs=(self.cfg,)
         ) as executor:
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(hypotheses) * len(references))
@@ -150,6 +151,105 @@ class MetricBLEU(MetricAggregatable):
         """
         return self.scorer.corpus_score(hypotheses, [references]).score
 
+    @staticmethod
+    def _compute_bleu(
+        correct: list[float],
+        total: list[float],
+        sys_len: float,
+        ref_len: float,
+        smooth_method: str = "none",
+        smooth_value: Optional[float] = None,
+        effective_order: bool = False,
+        max_ngram_order: int = MAX_NGRAM_ORDER,
+    ) -> float:
+        """Computes BLEU score from its sufficient statistics with smoothing.
+
+        Smoothing methods (citing "A Systematic Comparison of Smoothing Techniques for Sentence-Level BLEU",
+        Boxing Chen and Colin Cherry, WMT 2014: http://aclweb.org/anthology/W14-3346)
+
+        - none: No smoothing.
+        - floor: Method 1 (requires small positive value (0.1 in the paper) to be set)
+        - add-k: Method 2 (Generalizing Lin and Och, 2004)
+        - exp: Method 3 (NIST smoothing method i.e. in use with mteval-v13a.pl)
+
+        This method extends the original sacrebleu implementation to treat expected n-grams.
+
+        Args:
+            correct (list[float]): List of counts of correct ngrams, 1 <= n <= max_ngram_order.
+            total (list[float]): List of counts of total ngrams, 1 <= n <= max_ngram_order
+            sys_len (float): The cumulative system length
+            ref_len (float): The cumulative reference length
+            smooth_method (str): The smoothing method to use ('floor', 'add-k', 'exp' or 'none')
+            smooth_value (float, optional): The smoothing value for `floor` and `add-k` methods. `None` falls back to default value.
+            effective_order (bool): If `True`, stop including n-gram orders for which precision is 0. This should be
+                `True`, if sentence-level BLEU will be computed.
+            max_ngram_order (int): If given, it overrides the maximum n-gram order (default: 4) when computing precisions.
+
+        Returns:
+            float: A BLEU score.
+        """
+        assert (
+            smooth_method in BLEU.SMOOTH_DEFAULTS.keys()
+        ), "Unknown smooth_method {smooth_method!r}"
+
+        # Fetch the default value for floor and add-k
+        if smooth_value is None:
+            smooth_value = BLEU.SMOOTH_DEFAULTS[smooth_method]
+
+        # Compute brevity penalty
+        if sys_len < ref_len:
+            bp = math.exp(1 - ref_len / sys_len) if sys_len > 0 else 0.0
+        else:
+            bp = 1.0
+
+        # n-gram precisions
+        precisions = [0.0 for x in range(max_ngram_order)]
+
+        # Early stop if there are no matches (#141)
+        if not any(correct):
+            return 0.0
+
+        smooth_mteval = 1.0
+        eff_order = max_ngram_order
+        for n in range(1, len(precisions) + 1):
+            if smooth_method == "add-k" and n > 1:
+                correct[n - 1] += smooth_value
+                total[n - 1] += smooth_value
+
+            if total[n - 1] == 0:
+                break
+
+            # If the system guesses no i-grams, 1 <= i <= max_ngram_order,
+            # the BLEU score is 0 (technically undefined). This is a problem for sentence
+            # level BLEU or a corpus of short sentences, where systems will get
+            # no credit if sentence lengths fall under the max_ngram_order threshold.
+            # This fix scales max_ngram_order to the observed maximum order.
+            # It is only available through the API and off by default
+            if effective_order:
+                eff_order = n
+
+            if correct[n - 1] == 0:
+                if smooth_method == "exp":
+                    smooth_mteval *= 2
+                    precisions[n - 1] = 100.0 / (smooth_mteval * total[n - 1])
+                elif smooth_method == "floor":
+                    precisions[n - 1] = 100.0 * smooth_value / total[n - 1]
+            else:
+                precisions[n - 1] = 100.0 * correct[n - 1] / total[n - 1]
+
+        # Compute BLEU score
+        score = bp * math.exp(
+            sum(
+                [
+                    math.log(p) if p > 0.0 else -9999999999.0
+                    for p in precisions[:eff_order]
+                ]
+            )
+            / eff_order
+        )
+
+        return score
+
     def _aggregate_references(
         self, references: list[str], reference_lprobs: Optional[Tensor] = None
     ) -> AggregatedReference:
@@ -164,23 +264,30 @@ class MetricBLEU(MetricAggregatable):
             MetricBLEU.AggregatedReference: Aggregated reference representation.
         """
         num_references = len(references)
+        if reference_lprobs is not None:
+            lprobs = reference_lprobs.log_softmax(dim=-1, dtype=torch.float32).tolist()
+        else:
+            lprobs = [-math.log(num_references)] * num_references
+
         reference_stats = self.scorer._cache_references([references])
         reference_ngrams: list[Counter[tuple[str, ...]]] = [
             stat["ref_ngrams"] for stat in reference_stats
         ]
-        expected_reference_length = (
-            sum([stat["ref_lens"][0] for stat in reference_stats]) / num_references
-        )
 
-        reference_probs = [1.0 / num_references] * num_references
-        if reference_lprobs is not None:
-            reference_probs = reference_lprobs.softmax(dim=-1).tolist()
+        expected_reference_length = sum(
+            [
+                math.exp(math.log(stat["ref_lens"][0]) + lprob)
+                if stat["ref_lens"][0] > 0.0
+                else 0.0
+                for stat, lprob in zip(reference_stats, lprobs)
+            ]
+        )
 
         acc_ngrams: Counter[tuple[str, ...]] = Counter()
         for i, ngrams in enumerate(reference_ngrams):
             for ngram in ngrams:
                 # Note: Counter has float values.
-                ngrams[ngram] *= reference_probs[i]
+                ngrams[ngram] = math.exp(math.log(ngrams[ngram]) + lprobs[i])
             acc_ngrams += ngrams
 
         return self.AggregatedReference(acc_ngrams, expected_reference_length)
@@ -220,22 +327,29 @@ class MetricBLEU(MetricAggregatable):
 
                 # Count the stats
                 # Although counter has its internal & and | operators, this is faster
-                correct = [0 for i in range(self.scorer.max_ngram_order)]
+                correct = [0.0 for i in range(self.scorer.max_ngram_order)]
                 total = correct[:]
                 for hyp_ngram, hyp_count in hyp_ngrams.items():
                     # n-gram order
                     n = len(hyp_ngram) - 1
                     # count hypothesis n-grams
-                    total[n] += hyp_count
+                    total[n] += float(hyp_count)
                     # count matched n-grams
                     if hyp_ngram in aggregated_reference.ngrams:
-                        correct[n] += min(
-                            hyp_count, aggregated_reference.ngrams[hyp_ngram]
+                        correct[n] += float(
+                            min(hyp_count, aggregated_reference.ngrams[hyp_ngram])
                         )
 
-                bleu_score = self.scorer._compute_score_from_stats(
-                    [hyp_len, aggregated_reference.length] + correct + total
+                stats = [hyp_len, aggregated_reference.length] + correct + total
+                expected_scores[i] = self._compute_bleu(
+                    correct=stats[2 : 2 + self.scorer.max_ngram_order],
+                    total=stats[2 + self.scorer.max_ngram_order :],
+                    sys_len=float(stats[0]),
+                    ref_len=float(stats[1]),
+                    smooth_method=self.scorer.smooth_method,
+                    smooth_value=self.scorer.smooth_value,
+                    effective_order=self.scorer.effective_order,
+                    max_ngram_order=self.scorer.max_ngram_order,
                 )
-                expected_scores[i] = bleu_score.score
 
         return expected_scores

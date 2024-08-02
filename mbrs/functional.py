@@ -23,5 +23,10 @@ def expectation(matrix: Tensor, lprobs: Optional[Tensor] = None) -> Tensor:
             )
 
         return (
-            matrix * lprobs.softmax(dim=-1, dtype=torch.float32).to(matrix)[None, :]
-        ).sum(dim=-1)
+            (
+                matrix.float()
+                * lprobs.to(matrix).softmax(dim=-1, dtype=torch.float32)[None, :]
+            )
+            .sum(dim=-1)
+            .to(matrix)
+        )

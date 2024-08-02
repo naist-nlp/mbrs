@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Optional
 
+import torch
 from torch import Tensor
 
 from mbrs import functional, timer
@@ -100,10 +101,18 @@ class DecoderCentroidMBR(DecoderMBR):
             counts[centroid_ids] = counts_nonzero
             lprobs = counts.log()
         elif reference_lprobs is not None:
+            reference_lprobs = reference_lprobs.to(centroids)
+
+            # Accumurate the log-probabilities for each centroid by logsumexp.
             lprobs = (
-                centroids.new_zeros(len(centroids))
-                .scatter_add(dim=-1, index=assigns.unique(), src=reference_lprobs.exp())
+                centroids.new_zeros(len(centroids), dtype=torch.float32)
+                .scatter_add(
+                    dim=-1,
+                    index=assigns.unique(),
+                    src=reference_lprobs.softmax(dim=-1, dtype=torch.float32),
+                )
                 .log()
+                .to(centroids)
             )
 
         with timer.measure("expectation"):
