@@ -10,6 +10,14 @@ mbrs: A library for MBR decoding
    installation
    cli
    api_python
+   tips
+
+.. toctree::
+   :maxdepth: 1
+   :caption: Support lists:
+
+   list_metrics
+   list_decoders
 
 .. toctree::
    :maxdepth: 1
@@ -25,6 +33,3 @@ mbrs: A library for MBR decoding
 
    cli_help
    source/mbrs
-
-* :ref:`genindex`
-* :ref:`search`
