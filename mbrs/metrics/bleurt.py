@@ -4,6 +4,7 @@ import itertools
 from dataclasses import dataclass
 
 import torch
+import transformers
 from bleurt_pytorch import (
     BleurtForSequenceClassification,
     BleurtTokenizer,
@@ -14,6 +15,8 @@ from transformers.tokenization_utils import BatchEncoding, EncodedInputPair
 from mbrs import timer
 
 from . import Metric, register
+
+transformers.logging.set_verbosity_error()
 
 
 @register("bleurt")

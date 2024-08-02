@@ -60,10 +60,10 @@ class MetricBLEU(MetricAggregatable):
 
     def __init__(self, cfg: MetricBLEU.Config):
         super().__init__(cfg)
-        self.scorer = self.__initialize_scorer(cfg)
+        self.scorer = self._initialize_bleu(cfg)
 
     @staticmethod
-    def __initialize_scorer(cfg: MetricBLEU.Config) -> BLEU:
+    def _initialize_bleu(cfg: MetricBLEU.Config) -> BLEU:
         scorer = BLEU(
             lowercase=cfg.lowercase,
             force=cfg.force,
@@ -124,7 +124,7 @@ class MetricBLEU(MetricAggregatable):
               of hypotheses and `R` is the number of references.
         """
         with concurrent.futures.ProcessPoolExecutor(
-            initializer=self.__initialize_scorer, initargs=(self.cfg,)
+            initializer=self._initialize_bleu, initargs=(self.cfg,)
         ) as executor:
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(hypotheses) * len(references))
