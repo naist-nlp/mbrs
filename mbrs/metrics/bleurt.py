@@ -195,7 +195,7 @@ class MetricBLEURT(Metric):
                 scores.append(model_output.logits.flatten())
         return torch.cat(scores).view(len(references), len(hypotheses)).transpose(0, 1)
 
-    def corpus_score(self, hypotheses: list[str], references: list[str]) -> float:
+    def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
         """Calculate the corpus-level score.
 
         Args:

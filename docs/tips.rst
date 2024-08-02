@@ -7,6 +7,10 @@ If you have true references, you can get the oracle outputs.
 
 The below is an example of COMET oracle selection.
 
+.. tip::
+
+   MBR decoding with a single true reference selects the oracle hypothesis.
+
 .. tab-set::
 
    .. tab-item:: Python
