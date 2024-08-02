@@ -3,6 +3,8 @@ mbrs
 
 *mbrs* is a library for minimum bayes risk (MBR) decoding.
 
+- 📖 `Reference docs <https://mbrs.readthedocs.io>`_
+
 Installation
 ============
 
