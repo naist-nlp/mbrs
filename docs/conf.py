@@ -27,6 +27,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinxarg.ext",
     "sphinx_copybutton",
+    "sphinx_design",
 ]
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3/", None),
@@ -36,6 +37,9 @@ intersphinx_mapping = {
 viewcode_line_numbers = True
 
 templates_path = ["_templates"]
+main_doc = "index"
+language = "en"
+
 exclude_patterns = [
     "_build",
     "Thumbs.db",
