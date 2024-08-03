@@ -54,6 +54,26 @@ class TestMetricChrF:
             )
             multiprocessing.set_start_method(default_method, force=True)
 
+    def test_scores(self):
+        hyps = [
+            "this is a test",
+            "another test",
+            "this is a fest",
+            "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
+        ]
+        refs = [
+            "this is a test",
+            "ref",
+            "this is a test",
+            "producţia de zahăr brut se exprimă în zahăr alb;",
+        ]
+
+        metric = MetricChrF(MetricChrF.Config())
+        torch.testing.assert_close(
+            metric.scores(hyps, refs),
+            torch.tensor([metric.score(h, r) for h, r in zip(hyps, refs)]),
+        )
+
     def test_corpus_score(self):
         hyps = [
             "this is a test",
