@@ -1,3 +1,6 @@
+import multiprocessing
+import sys
+
 import torch
 
 from .chrf import MetricChrF
@@ -42,6 +45,14 @@ class TestMetricChrF:
             atol=0.0005,
             rtol=1e-4,
         )
+        if sys.platform == "linux":
+            default_method = multiprocessing.get_start_method()
+            multiprocessing.set_start_method("spawn", force=True)
+            expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
+            torch.testing.assert_close(
+                expected_scores, SCORES.mean(dim=1), atol=0.0005, rtol=1e-4
+            )
+            multiprocessing.set_start_method(default_method, force=True)
 
     def test_corpus_score(self):
         hyps = [

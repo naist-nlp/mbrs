@@ -32,6 +32,7 @@ class MetricChrF(MetricAggregatable):
         - whitespace (bool): If `True`, include whitespaces when extracting character n-grams.
         - eps_smoothing (bool): If `True`, applies epsilon smoothing similar to reference chrF++.py, NLTK and Moses implementations.
             Otherwise, it takes into account effective match order similar to sacreBLEU < 2.0.0.
+        - num_workers (int): Number of workers for multiprocessing.
         """
 
         char_order: int = 6
@@ -40,6 +41,9 @@ class MetricChrF(MetricAggregatable):
         lowercase: bool = False
         whitespace: bool = False
         eps_smoothing: bool = False
+        num_workers: int = 8
+
+    cfg: Config
 
     @dataclass
     class AggregatedReference:
@@ -51,6 +55,7 @@ class MetricChrF(MetricAggregatable):
         ngrams: list[Counter]
 
     def __init__(self, cfg: MetricChrF.Config):
+        super().__init__(cfg)
         self.scorer = CHRF(
             char_order=cfg.char_order,
             word_order=cfg.word_order,
@@ -72,6 +77,32 @@ class MetricChrF(MetricAggregatable):
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
 
+    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+        """Calculate the scores of the given hypotheses.
+
+        Args:
+            hypotheses (list[str]): N hypotheses.
+            references (list[str]): N references.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.cfg.num_workers,
+        ) as executor:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses))
+                return Tensor(
+                    list(
+                        executor.map(
+                            self.score,
+                            hypotheses,
+                            references,
+                            chunksize=math.ceil(len(hypotheses) / self.cfg.num_workers),
+                        )
+                    )
+                )
+
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], *_
     ) -> Tensor:
@@ -85,7 +116,9 @@ class MetricChrF(MetricAggregatable):
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
-        with concurrent.futures.ProcessPoolExecutor() as executor:
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.cfg.num_workers
+        ) as executor:
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(hypotheses) * len(references))
 
