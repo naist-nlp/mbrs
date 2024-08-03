@@ -1,9 +1,25 @@
-mbrs
-####
+.. raw:: html
 
-*mbrs* is a library for minimum bayes risk (MBR) decoding.
+   <p align="center"><img src="./docs/icon.svg" height=240px></p>
 
-- 📖 `Reference docs <https://mbrs.readthedocs.io>`_
+.. raw:: html
+
+   <p align="center">
+   <i>mbrs</i> is a library for minimum Bayes risk (MBR) decoding.
+   </p>
+
+   <p align="center">
+   <a href="https://pypi.org/project/mbrs"><img alt="PyPi" src="https://img.shields.io/pypi/v/mbrs"></a>
+   <a href="https://github.com/naist-nlp/mbrs/blob/main/LICENSE"><img alt="GitHub" src="https://img.shields.io/github/license/naist-nlp/mbrs.svg"></a>
+   <a href=""><img src="https://github.com/naist-nlp/mbrs/actions/workflows/ci.yaml/badge.svg"></a>
+   </p>
+   <p align="center">
+   <b>
+         <a href="https://mbrs.readthedocs.io">Reference docs</a> |
+         <a href="https://github.com/naist-nlp/mbrs#citation">Citation</a>
+   </b>
+   </p>
+
 
 Installation
 ============

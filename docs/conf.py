@@ -52,6 +52,8 @@ exclude_patterns = [
 # html_theme = 'alabaster'
 html_theme = "sphinx_book_theme"
 html_static_path = ["_static"]
+html_logo = "icon.svg"
+html_favicon = "icon.svg"
 html_theme_options = {
     "repository_url": "https://github.com/naist-nlp/mbrs",
     "use_repository_button": True,
