@@ -1,8 +1,14 @@
 from __future__ import annotations
 
+import concurrent.futures
+import itertools
+import math
 from dataclasses import dataclass
 
 from sacrebleu.metrics.ter import TER
+from torch import Tensor
+
+from mbrs import timer
 
 from . import Metric, register
 
@@ -31,14 +37,19 @@ class MetricTER(Metric):
           the character level. If 'no_punct' is enabled alongside 'asian_support',
           specific unicode ranges for CJK and full-width punctuations are also removed.
         - case_sensitive (bool): If `True`, does not lowercase sentences.
+        - num_workers (int): Number of workers for multiprocessing.
         """
 
         normalized: bool = False
         no_punct: bool = False
         asian_support: bool = False
         case_sensitive: bool = False
+        num_workers: int = 8
+
+    cfg: Config
 
     def __init__(self, cfg: MetricTER.Config):
+        super().__init__(cfg)
         self.scorer = TER(
             normalized=cfg.normalized,
             no_punct=cfg.no_punct,
@@ -57,6 +68,61 @@ class MetricTER(Metric):
             float: The score of the given hypothesis.
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
+
+    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+        """Calculate the scores of the given hypotheses.
+
+        Args:
+            hypotheses (list[str]): N hypotheses.
+            references (list[str]): N references.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.cfg.num_workers
+        ) as executor:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses))
+                return Tensor(
+                    list(
+                        executor.map(
+                            self.score,
+                            hypotheses,
+                            references,
+                            chunksize=math.ceil(len(hypotheses) / self.cfg.num_workers),
+                        )
+                    )
+                )
+
+    def pairwise_scores(
+        self, hypotheses: list[str], references: list[str], *_
+    ) -> Tensor:
+        """Calculate the pairwise scores.
+
+        Args:
+            hypotheses (list[str]): Hypotheses.
+            references (list[str]): References.
+
+        Returns:
+            Tensor: Score matrix of shape `(H, R)`, where `H` is the number
+              of hypotheses and `R` is the number of references.
+        """
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.cfg.num_workers
+        ) as executor:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses) * len(references))
+
+                return Tensor(
+                    list(
+                        executor.map(
+                            self.score,
+                            *zip(*itertools.product(hypotheses, references)),
+                            chunksize=len(hypotheses),
+                        )
+                    )
+                ).view(len(hypotheses), len(references))
 
     def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
         """Calculate the corpus-level score.

@@ -1,3 +1,4 @@
+import pytest
 import torch
 
 from .bleurt import MetricBLEURT
@@ -21,6 +22,11 @@ SCORES = torch.Tensor(
         [0.16558, 0.17050, 0.65812],
     ]
 )
+
+
+@pytest.fixture(scope="module")
+def metric_bleurt():
+    return MetricBLEURT(MetricBLEURT.Config())
 
 
 class TestMetricBLEURT:
