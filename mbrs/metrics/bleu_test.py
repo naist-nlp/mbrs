@@ -1,3 +1,6 @@
+import multiprocessing
+import sys
+
 import pytest
 import torch
 
@@ -70,6 +73,34 @@ class TestMetricBLEU:
         expected_scores = metric.expected_scores(hyps, refs)
         torch.testing.assert_close(
             expected_scores, torch.Tensor([49.5846, 2.4894]), atol=0.0005, rtol=1e-4
+        )
+        if sys.platform == "linux":
+            default_method = multiprocessing.get_start_method()
+            multiprocessing.set_start_method("spawn", force=True)
+            expected_scores = metric.expected_scores(hyps, refs)
+            torch.testing.assert_close(
+                expected_scores, torch.Tensor([49.5846, 2.4894]), atol=0.0005, rtol=1e-4
+            )
+            multiprocessing.set_start_method(default_method, force=True)
+
+    def test_scores(self):
+        hyps = [
+            "this is a test",
+            "another test",
+            "this is a fest",
+            "Producția de zahăr primă va fi exprimată în ceea ce privește zahărul alb;",
+        ]
+        refs = [
+            "this is a test",
+            "ref",
+            "this is a test",
+            "producţia de zahăr brut se exprimă în zahăr alb;",
+        ]
+
+        metric = MetricBLEU(MetricBLEU.Config())
+        torch.testing.assert_close(
+            metric.scores(hyps, refs),
+            torch.tensor([metric.score(h, r) for h, r in zip(hyps, refs)]),
         )
 
     def test_corpus_score(self):

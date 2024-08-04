@@ -34,6 +34,7 @@ class MetricBLEU(MetricAggregatable):
         - effective_order (bool): If `True`, stop including n-gram orders for which precision is 0.
           This should be `True`, if sentence-level BLEU will be computed. (default: True)
         - trg_lang (str): An optional language code to raise potential tokenizer warnings.
+        - num_workers (int): Number of workers for multiprocessing.
         """
 
         lowercase: bool = False
@@ -44,6 +45,7 @@ class MetricBLEU(MetricAggregatable):
         max_ngram_order: int = 4
         effective_order: bool = True
         trg_lang: str = ""
+        num_workers: int = 8
 
     cfg: Config
 
@@ -110,6 +112,34 @@ class MetricBLEU(MetricAggregatable):
             hypothesis, [reference]
         ).score
 
+    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+        """Calculate the scores of the given hypotheses.
+
+        Args:
+            hypotheses (list[str]): N hypotheses.
+            references (list[str]): N references.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        with concurrent.futures.ProcessPoolExecutor(
+            max_workers=self.cfg.num_workers,
+            initializer=self._initialize_bleu,
+            initargs=(self.cfg,),
+        ) as executor:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses))
+                return Tensor(
+                    list(
+                        executor.map(
+                            self._score_worker,
+                            hypotheses,
+                            references,
+                            chunksize=math.ceil(len(hypotheses) / self.cfg.num_workers),
+                        )
+                    )
+                )
+
     def pairwise_scores(
         self, hypotheses: list[str], references: list[str], *_
     ) -> Tensor:
@@ -124,7 +154,9 @@ class MetricBLEU(MetricAggregatable):
               of hypotheses and `R` is the number of references.
         """
         with concurrent.futures.ProcessPoolExecutor(
-            initializer=self._initialize_bleu, initargs=(self.cfg,)
+            max_workers=self.cfg.num_workers,
+            initializer=self._initialize_bleu,
+            initargs=(self.cfg,),
         ) as executor:
             with timer.measure("score") as t:
                 t.set_delta_ncalls(len(hypotheses) * len(references))
