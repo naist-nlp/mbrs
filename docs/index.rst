@@ -12,8 +12,9 @@ mbrs: A library for MBR decoding
       :class-card: sd-border-0
 
       - :doc:`installation`
-      - :doc:`cli`
       - :doc:`api_python`
+      - :doc:`cli`
+      - :doc:`yaml_config`
       - :doc:`tips`
 
    .. grid-item-card:: :material-regular:`list_alt;2em` Implementation lists
@@ -41,8 +42,9 @@ mbrs: A library for MBR decoding
    :hidden:
 
    installation
-   cli
    api_python
+   cli
+   yaml_config
    tips
 
 .. toctree::
