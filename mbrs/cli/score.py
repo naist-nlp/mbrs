@@ -7,12 +7,14 @@ import os
 import sys
 from argparse import Namespace
 from dataclasses import asdict, dataclass
+from typing import Sequence
 
 import simple_parsing
-from simple_parsing import ArgumentParser, choice, field, flag
+from simple_parsing import choice, field, flag
 from simple_parsing.wrappers import dataclass_wrapper
 
 from mbrs import registry
+from mbrs.args import ArgumentParser
 from mbrs.metrics import Metric, get_metric
 from mbrs.metrics.base import MetricReferenceless
 
@@ -53,23 +55,24 @@ class CommonArguments:
     width: int = field(default=1, alias=["-w"])
 
 
-def get_argparser() -> ArgumentParser:
-    meta_parser = ArgumentParser(add_help=False)
+def get_argparser(args: Sequence[str] | None = None) -> ArgumentParser:
+    meta_parser = ArgumentParser(add_help=False, add_config_path_arg=True)
     meta_parser.add_arguments(CommonArguments, "common")
     for _field in meta_parser._wrappers[0].fields:
         _field.required = False
-    known_args, _ = meta_parser.parse_known_args()
+    known_args, _ = meta_parser.parse_known_args(args=args)
     metric_type = get_metric(known_args.common.metric)
 
-    parser = ArgumentParser(add_help=True)
+    parser = ArgumentParser(add_help=True, add_config_path_arg=True)
     parser.add_arguments(CommonArguments, "common")
     parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
-    parser._preprocessing(sys.argv[1:])
     return parser
 
 
-def parse_args() -> Namespace:
-    return get_argparser().parse_args()
+def format_argparser() -> ArgumentParser:
+    parser = get_argparser()
+    parser.preprocess_parser()
+    return parser
 
 
 def main(args: Namespace) -> None:
@@ -112,7 +115,7 @@ def main(args: Namespace) -> None:
 
 
 def cli_main():
-    args = parse_args()
+    args = get_argparser().parse_args()
     main(args)
 
 
