@@ -46,6 +46,11 @@ This example regards the hypothesis set as the pseudo-reference set.
       --metric.model Unbabel/wmt22-comet-da \
       --metric.batch_size 64 --metric.fp16 true
 
+.. seealso::
+
+   :doc:`YAML Configuration <./yaml_config>`
+        Passing arguments via a configuration yaml file.
+
 Finally, you can evaluate the score with :code:`mbrs-score`:
 
 .. code:: bash
