@@ -39,7 +39,7 @@ class DecoderProbabilisticMBR(DecoderMBR):
         - seed (int): Random seed.
         """
 
-        reduction_factor: float = 8
+        reduction_factor: float = 8.0
         regularization_weight: float = 0.1
         rank: int = 8
         niter: int = 10

@@ -14,7 +14,7 @@ mbrs-decode
 
 .. argparse::
     :module: mbrs.cli.decode
-    :func: get_argparser
+    :func: format_argparser
     :prog: mbrs-decode
 
 mbrs-score
@@ -22,5 +22,5 @@ mbrs-score
 
 .. argparse::
     :module: mbrs.cli.score
-    :func: get_argparser
+    :func: format_argparser
     :prog: mbrs-score
