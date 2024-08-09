@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "mbrs"
-version = "0.1.1"
-description = "A library for minimum bayes risk (MBR) decoding."
+version = "0.1.2"
+description = "A library for minimum Bayes risk (MBR) decoding."
 authors = ["Hiroyuki Deguchi <deguchi.hiroyuki.db0@is.naist.jp>"]
 license = "MIT"
 readme = "README.rst"
