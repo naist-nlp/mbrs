@@ -7,8 +7,8 @@ on:
   # Trigger the workflow on push to main or any pull request
   push:
     branches: ["main"]
-    pull_request:
-      types: ["opened", "synchronize"]
+  pull_request:
+    types: ["opened", "synchronize"]
 
 jobs:
   build:

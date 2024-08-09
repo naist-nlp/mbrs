@@ -15,6 +15,7 @@
    </p>
    <p align="center">
    <b>
+         <a href="https://arxiv.org/abs/2408.04167">Paper</a> |
          <a href="https://mbrs.readthedocs.io">Reference docs</a> |
          <a href="https://github.com/naist-nlp/mbrs#citation">Citation</a>
    </b>
@@ -182,12 +183,14 @@ If you use this software, please cite:
 
 .. code:: bibtex
 
-   @software{Deguchi_mbrs_2024,
-     author = {Deguchi, Hiroyuki},
-     month = jun,
-     title = {{mbrs}},
-     url = {https://github.com/naist-nlp/mbrs},
-     year = {2024}
+   @misc{deguchi-2024-mbrs,
+      title={mbrs: A Library for Minimum Bayes Risk Decoding},
+      author={Hiroyuki Deguchi and Yusuke Sakai and Hidetaka Kamigaito and Taro Watanabe},
+      year={2024},
+      eprint={2408.04167},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL},
+      url={https://arxiv.org/abs/2408.04167},
    }
 
 License

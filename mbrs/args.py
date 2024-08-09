@@ -43,7 +43,6 @@ class ArgumentParser(simple_parsing.ArgumentParser):
             temp_parser.add_argument(
                 "--config_path",
                 type=Path,
-                nargs="*",
                 default=self.config_path,
                 help="Path to a config file containing default values to use.",
             )
