@@ -7,7 +7,8 @@ import torch
 from torch import Tensor
 
 from mbrs import functional, timer
-from mbrs.metrics import MetricCacheable
+from mbrs.metrics import Metric, MetricCacheable
+from mbrs.selectors import Selector, SelectorNbest
 
 from . import register
 from .mbr import DecoderMBR
@@ -23,7 +24,17 @@ class DecoderPruningMBR(DecoderMBR):
         https://aclanthology.org/2023.emnlp-main.767/
     """
 
-    cfg: Config
+    def __init__(
+        self,
+        cfg: DecoderPruningMBR.Config,
+        metric: Metric,
+        selector: Selector = SelectorNbest(SelectorNbest.Config()),
+    ) -> None:
+        if not isinstance(selector, SelectorNbest):
+            raise ValueError(
+                "Confidence-based pruning cannot be combined with other selectors than the nbest."
+            )
+        super().__init__(cfg, metric, selector)
 
     @dataclass
     class Config(DecoderMBR.Config):
@@ -42,6 +53,8 @@ class DecoderPruningMBR(DecoderMBR):
         )
         num_bootstrap_samples: int = 500
         seed: int = 0
+
+    cfg: Config
 
     def decode_pruning(
         self,
@@ -111,7 +124,7 @@ class DecoderPruningMBR(DecoderMBR):
                     if reference_lprobs is not None
                     else None,
                 )
-                current_best_idx = self.metric.argbest(expected_scores)
+                current_best_idx = self.argbest(expected_scores)
                 sample_indices = torch.randint(
                     r,
                     size=(self.cfg.num_bootstrap_samples, r),
@@ -124,15 +137,18 @@ class DecoderPruningMBR(DecoderMBR):
                     if reference_lprobs is not None
                     else None,
                 )
-
-                win_rates = (
+                num_wins = (
                     (
                         bootstrap_expected_scores
                         >= bootstrap_expected_scores[current_best_idx]
                     )
-                    .float()
-                    .mean(dim=1)
+                    if self.maximize
+                    else (
+                        bootstrap_expected_scores
+                        <= bootstrap_expected_scores[current_best_idx]
+                    )
                 )
+                win_rates = num_wins.float().mean(dim=1)
                 winners = (win_rates > 1 - self.cfg.alpha).nonzero(as_tuple=True)[0]
                 num_winners = len(winners)
                 if num_winners >= nbest:
@@ -152,7 +168,7 @@ class DecoderPruningMBR(DecoderMBR):
                 else None,
             )
 
-        topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
+        topk_scores, topk_indices = self.topk(expected_scores, k=nbest)
         return topk_scores, orig_indices[topk_indices].tolist()
 
     def decode(
@@ -177,16 +193,13 @@ class DecoderPruningMBR(DecoderMBR):
             DecoderMBR.Output: The n-best hypotheses.
         """
 
-        if len(hypotheses) <= nbest:
-            expected_scores = self.metric.expected_scores(
-                hypotheses, references, source, reference_lprobs=reference_lprobs
-            )
-            topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
-        else:  # Pruning MBR decoding
-            topk_scores, topk_indices = self.decode_pruning(
-                hypotheses, references, source, reference_lprobs=reference_lprobs
-            )
-
+        topk_scores, topk_indices = self.decode_pruning(
+            hypotheses,
+            references,
+            source,
+            nbest=nbest,
+            reference_lprobs=reference_lprobs,
+        )
         return self.Output(
             idx=topk_indices,
             sentence=[hypotheses[idx] for idx in topk_indices],

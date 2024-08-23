@@ -9,6 +9,7 @@ from torch import Tensor
 from mbrs import functional, timer
 from mbrs.metrics import MetricCacheable
 from mbrs.modules.kmeans import Kmeans
+from mbrs.selectors import Selector, SelectorNbest
 
 from . import register
 from .mbr import DecoderMBR
@@ -29,8 +30,13 @@ class DecoderCentroidMBR(DecoderMBR):
         https://arxiv.org/abs/2402.11197
     """
 
-    def __init__(self, cfg: DecoderCentroidMBR.Config, metric: MetricCacheable) -> None:
-        super().__init__(cfg, metric)
+    def __init__(
+        self,
+        cfg: DecoderCentroidMBR.Config,
+        metric: MetricCacheable,
+        selector: Selector = SelectorNbest(SelectorNbest.Config()),
+    ) -> None:
+        super().__init__(cfg, metric, selector=selector)
         self.kmeans = Kmeans(kmeanspp=self.cfg.kmeanspp)
 
     cfg: Config
@@ -121,9 +127,14 @@ class DecoderCentroidMBR(DecoderMBR):
             )
             expected_scores = functional.expectation(pairwise_scores, lprobs=lprobs)
 
-        topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
-        return self.Output(
-            idx=topk_indices,
-            sentence=[hypotheses[idx] for idx in topk_indices],
-            score=topk_scores,
+        selector_outputs = self.select(
+            hypotheses, expected_scores, nbest=nbest, source=source
+        )
+        return (
+            self.Output(
+                idx=selector_outputs.idx,
+                sentence=selector_outputs.sentence,
+                score=selector_outputs.score,
+            )
+            | selector_outputs
         )

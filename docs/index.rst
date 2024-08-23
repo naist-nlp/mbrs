@@ -22,6 +22,7 @@ mbrs: A library for MBR decoding
 
       - :doc:`list_metrics`
       - :doc:`list_decoders`
+      - :doc:`list_selectors`
 
    .. grid-item-card:: :material-regular:`extension;2em` Extending mbrs
       :class-card: sd-border-0
@@ -54,6 +55,7 @@ mbrs: A library for MBR decoding
 
    list_metrics
    list_decoders
+   list_selectors
 
 .. toctree::
    :maxdepth: 1

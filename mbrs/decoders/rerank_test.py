@@ -1,6 +1,8 @@
+import pytest
 import torch
 
-from mbrs.metrics.cometkiwi import MetricCOMETkiwi
+from mbrs.metrics import MetricCOMETkiwi
+from mbrs.selectors import Selector
 
 from .rerank import DecoderRerank
 
@@ -35,3 +37,15 @@ class TestDecoderRerank:
                 atol=0.0005 / 100,
                 rtol=1e-6,
             )
+
+    @pytest.mark.parametrize("nbest", [1, 2])
+    def test_decode_selector(
+        self, metric_cometkiwi: MetricCOMETkiwi, nbest: int, selector: Selector
+    ):
+        decoder = DecoderRerank(
+            DecoderRerank.Config(), metric_cometkiwi, selector=selector
+        )
+        for i, hyps in enumerate(HYPOTHESES):
+            output = decoder.decode(hyps, SOURCE, nbest=nbest)
+            assert len(output.sentence) == min(nbest, len(hyps))
+            assert len(output.score) == min(nbest, len(hyps))

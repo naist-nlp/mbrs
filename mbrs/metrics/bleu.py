@@ -79,7 +79,7 @@ class MetricBLEU(MetricAggregatable):
         MetricBLEU._score_worker.scorer = scorer
         return scorer
 
-    def score(self, hypothesis: str, reference: str, *_) -> float:
+    def score(self, hypothesis: str, reference: str, *_, **__) -> float:
         """Calculate the score of the given hypothesis.
 
         Args:
@@ -92,7 +92,7 @@ class MetricBLEU(MetricAggregatable):
         return self.scorer.sentence_score(hypothesis, [reference]).score
 
     @staticmethod
-    def _score_worker(hypothesis: str, reference: str, *_) -> float:
+    def _score_worker(hypothesis: str, reference: str, *_, **__) -> float:
         """Calculate the score of the given hypothesis.
 
         Beacause ja-mecab tokenizer cannot be pickled, this method is necessary to use
@@ -112,7 +112,7 @@ class MetricBLEU(MetricAggregatable):
             hypothesis, [reference]
         ).score
 
-    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+    def scores(self, hypotheses: list[str], references: list[str], *_, **__) -> Tensor:
         """Calculate the scores of the given hypotheses.
 
         Args:
@@ -141,7 +141,7 @@ class MetricBLEU(MetricAggregatable):
                 )
 
     def pairwise_scores(
-        self, hypotheses: list[str], references: list[str], *_
+        self, hypotheses: list[str], references: list[str], *_, **__
     ) -> Tensor:
         """Calculate the pairwise scores.
 
@@ -171,7 +171,9 @@ class MetricBLEU(MetricAggregatable):
                     )
                 ).view(len(hypotheses), len(references))
 
-    def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
+    def corpus_score(
+        self, hypotheses: list[str], references: list[str], *_, **__
+    ) -> float:
         """Calculate the corpus-level score.
 
         Args:

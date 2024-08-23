@@ -188,7 +188,7 @@ Specifically, the following methods of MBR decoding are included:
 -   [mbr](https://github.com/ZurichNLP/mbr)
     -   Highly integrated with [huggingface
         transformers](https://huggingface.co/transformers) by
-        customizing [generate()]{.title-ref} method of model
+        customizing `generate()` method of model
         implementation.
     -   If you are looking for an MBR decoding library that is fully
         integrated into transformers, this might be a good choice.
