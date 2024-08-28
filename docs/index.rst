@@ -27,6 +27,7 @@ mbrs: A library for MBR decoding
    .. grid-item-card:: :material-regular:`extension;2em` Extending mbrs
       :class-card: sd-border-0
 
+      - :doc:`design`
       - :doc:`custom_metric`
       - :doc:`custom_decoder`
       - :doc:`timer`
@@ -62,6 +63,7 @@ mbrs: A library for MBR decoding
    :caption: Extending mbrs:
    :hidden:
 
+   design
    custom_metric
    custom_decoder
    timer

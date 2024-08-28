@@ -132,6 +132,8 @@ print(f"Expected score: {output.score}")
 
 ## List of implemented methods
 
+### Metrics
+
 Currently, the following metrics are supported:
 
 -   BLEU [(Papineni et al., 2002)](https://aclanthology.org/P02-1040):
@@ -149,6 +151,8 @@ Currently, the following metrics are supported:
 -   BLEURT [(Sellam et al.,
     2020)](https://aclanthology.org/2020.acl-main.704): `bleurt` (thanks
     to [\@lucadiliello](https://github.com/lucadiliello/bleurt-pytorch))
+
+### Decoders
 
 The following decoding methods are implemented:
 
@@ -182,6 +186,13 @@ Specifically, the following methods of MBR decoding are included:
         2024)](https://arxiv.org/abs/2402.11197): `centroid_mbr`
     -   Probabilistic MBR [(Trabelsi et al.,
         2024)](https://arxiv.org/abs/2406.02832): `probabilistic_mbr`
+
+### Selectors
+
+The final output list is selected according to these selectors:
+
+-   N-best selection: `nbest`
+-   Diverse selection [(Jinnai et al., 2024)](https://aclanthology.org/2024.findings-acl.503): `diverse`
 
 ## Related projects
 
