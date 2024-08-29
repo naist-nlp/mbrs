@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+import enum
+
 from mbrs import registry
 
 from .base import (
@@ -32,3 +36,9 @@ __all__ = [
     "MetricXCOMET",
     "MetricBLEURT",
 ]
+
+
+class MetricEnum(str, enum.Enum): ...
+
+
+Metrics = MetricEnum("Metrics", {k: k for k in registry.get_registry("metric").keys()})

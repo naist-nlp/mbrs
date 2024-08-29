@@ -1,7 +1,8 @@
+import pytest
 import torch
 
-from mbrs.metrics.chrf import MetricChrF
-from mbrs.metrics.comet import MetricCOMET
+from mbrs.metrics import MetricChrF, MetricCOMET
+from mbrs.selectors import Selector
 
 from .probabilistic_mbr import DecoderProbabilisticMBR
 
@@ -72,3 +73,28 @@ class TestDecoderProbabilisticMBR:
             )
             assert output.idx[0] == BEST_INDICES[i]
             assert output.sentence[0] == BEST_SENTENCES[i]
+
+    @pytest.mark.parametrize("nbest", [1, 2])
+    def test_decode_selector(self, nbest: int, selector: Selector):
+        metric = MetricChrF(MetricChrF.Config())
+        decoder = DecoderProbabilisticMBR(
+            DecoderProbabilisticMBR.Config(
+                reduction_factor=FACTOR, rank=RANK, niter=NITER
+            ),
+            metric,
+            selector=selector,
+        )
+        for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
+            output = decoder.decode(hyps, refs, SOURCE[i], nbest=nbest)
+            assert len(output.sentence) == min(nbest, len(hyps))
+            assert len(output.score) == min(nbest, len(hyps))
+
+            output = decoder.decode(
+                hyps,
+                refs,
+                SOURCE[i],
+                nbest=nbest,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs)),
+            )
+            assert len(output.sentence) == min(nbest, len(hyps))
+            assert len(output.score) == min(nbest, len(hyps))

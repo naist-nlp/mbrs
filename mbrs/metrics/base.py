@@ -26,34 +26,6 @@ class MetricBase(abc.ABC):
         """Returns the device of the metric object."""
         return torch.device("cpu")
 
-    def topk(self, x: Tensor, k: int = 1) -> tuple[list[float], list[int]]:
-        """Return the top-k best elements and corresponding indices.
-
-        Args:
-            x (Tensor): Input 1-D array.
-            k (int): Return the top-k values and indices.
-
-        Returns:
-            tuple[list[float], list[int]]
-              - list[float]: The top-k values.
-              - list[int]: The top-k indices.
-        """
-        values, indices = torch.topk(x, k=min(k, len(x)), largest=self.HIGHER_IS_BETTER)
-        return values.tolist(), indices.tolist()
-
-    def argbest(self, x: Tensor) -> Tensor:
-        """Return the index of the best element.
-
-        Args:
-            x (Tensor): Input 1-D array.
-
-        Returns:
-            Tensor: A scalar tensor of the best index.
-        """
-        if self.HIGHER_IS_BETTER:
-            return torch.argmax(x)
-        return torch.argmin(x)
-
 
 class Metric(MetricBase, metaclass=abc.ABCMeta):
     """Base metric class."""

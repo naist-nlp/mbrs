@@ -22,10 +22,12 @@ mbrs: A library for MBR decoding
 
       - :doc:`list_metrics`
       - :doc:`list_decoders`
+      - :doc:`list_selectors`
 
    .. grid-item-card:: :material-regular:`extension;2em` Extending mbrs
       :class-card: sd-border-0
 
+      - :doc:`design`
       - :doc:`custom_metric`
       - :doc:`custom_decoder`
       - :doc:`timer`
@@ -54,12 +56,14 @@ mbrs: A library for MBR decoding
 
    list_metrics
    list_decoders
+   list_selectors
 
 .. toctree::
    :maxdepth: 1
    :caption: Extending mbrs:
    :hidden:
 
+   design
    custom_metric
    custom_decoder
    timer

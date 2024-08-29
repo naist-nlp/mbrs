@@ -83,7 +83,7 @@ class MetricBLEURT(Metric):
         """Returns the device of the model."""
         return self.scorer.device
 
-    def score(self, hypothesis: str, reference: str, *_) -> float:
+    def score(self, hypothesis: str, reference: str, *_, **__) -> float:
         """Calculate the score of the given hypothesis.
 
         Args:
@@ -104,7 +104,7 @@ class MetricBLEURT(Metric):
         model_output = self.scorer(**batch)
         return model_output.logits.flatten().tolist()[0]
 
-    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+    def scores(self, hypotheses: list[str], references: list[str], *_, **__) -> Tensor:
         """Calculate the scores of the given hypothesis.
 
         Args:
@@ -166,7 +166,7 @@ class MetricBLEURT(Metric):
         return batch
 
     def pairwise_scores(
-        self, hypotheses: list[str], references: list[str], *_
+        self, hypotheses: list[str], references: list[str], *_, **__
     ) -> Tensor:
         """Calculate the pairwise scores.
 
@@ -195,7 +195,9 @@ class MetricBLEURT(Metric):
                 scores.append(model_output.logits.flatten())
         return torch.cat(scores).view(len(references), len(hypotheses)).transpose(0, 1)
 
-    def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
+    def corpus_score(
+        self, hypotheses: list[str], references: list[str], *_, **__
+    ) -> float:
         """Calculate the corpus-level score.
 
         Args:

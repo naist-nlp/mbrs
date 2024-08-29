@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from mbrs.metrics import get_metric
+from mbrs.selectors import Selector
 
 from .aggregate_mbr import DecoderAggregateMBR
 
@@ -112,3 +113,25 @@ class TestDecoderAggregateMBR:
                 atol=0.0005,
                 rtol=1e-4,
             )
+
+    @pytest.mark.parametrize("nbest", [1, 2])
+    def test_decode_selector(self, nbest: int, selector: Selector):
+        metric_type = "bleu"
+        metric_cls = get_metric(metric_type)
+        decoder = DecoderAggregateMBR(
+            DecoderAggregateMBR.Config(),
+            metric_cls(metric_cls.Config(effective_order=True)),
+            selector=selector,
+        )
+        for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
+            output = decoder.decode(hyps, refs, nbest=nbest, reference_lprobs=None)
+            assert len(output.sentence) == min(nbest, len(hyps))
+            assert len(output.score) == min(nbest, len(hyps))
+            output = decoder.decode(
+                hyps,
+                refs,
+                nbest=nbest,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(refs)),
+            )
+            assert len(output.sentence) == min(nbest, len(hyps))
+            assert len(output.score) == min(nbest, len(hyps))

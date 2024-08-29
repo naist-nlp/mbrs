@@ -28,9 +28,13 @@ class DecoderRerank(DecoderReferenceless):
         """
         with timer.measure("rerank"):
             scores = self.metric.scores(hypotheses, sources=[source] * len(hypotheses))
-        topk_scores, topk_indices = self.metric.topk(scores, k=nbest)
-        return self.Output(
-            idx=topk_indices,
-            sentence=[hypotheses[idx] for idx in topk_indices],
-            score=topk_scores,
+
+        selector_outputs = self.select(hypotheses, scores, nbest=nbest, source=source)
+        return (
+            self.Output(
+                idx=selector_outputs.idx,
+                sentence=selector_outputs.sentence,
+                score=selector_outputs.score,
+            )
+            | selector_outputs
         )

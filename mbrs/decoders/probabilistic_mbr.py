@@ -184,9 +184,14 @@ class DecoderProbabilisticMBR(DecoderMBR):
                 pairwise_scores, lprobs=reference_lprobs
             )
 
-        topk_scores, topk_indices = self.metric.topk(expected_scores, k=nbest)
-        return self.Output(
-            idx=topk_indices,
-            sentence=[hypotheses[idx] for idx in topk_indices],
-            score=topk_scores,
+        selector_outputs = self.select(
+            hypotheses, expected_scores, nbest=nbest, source=source
+        )
+        return (
+            self.Output(
+                idx=selector_outputs.idx,
+                sentence=selector_outputs.sentence,
+                score=selector_outputs.score,
+            )
+            | selector_outputs
         )

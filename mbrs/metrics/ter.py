@@ -57,7 +57,7 @@ class MetricTER(Metric):
             case_sensitive=cfg.case_sensitive,
         )
 
-    def score(self, hypothesis: str, reference: str, *_) -> float:
+    def score(self, hypothesis: str, reference: str, *_, **__) -> float:
         """Calculate the score of the given hypothesis.
 
         Args:
@@ -69,7 +69,7 @@ class MetricTER(Metric):
         """
         return self.scorer.sentence_score(hypothesis, [reference]).score
 
-    def scores(self, hypotheses: list[str], references: list[str], *_) -> Tensor:
+    def scores(self, hypotheses: list[str], references: list[str], *_, **__) -> Tensor:
         """Calculate the scores of the given hypotheses.
 
         Args:
@@ -96,7 +96,7 @@ class MetricTER(Metric):
                 )
 
     def pairwise_scores(
-        self, hypotheses: list[str], references: list[str], *_
+        self, hypotheses: list[str], references: list[str], *_, **__
     ) -> Tensor:
         """Calculate the pairwise scores.
 
@@ -124,7 +124,9 @@ class MetricTER(Metric):
                     )
                 ).view(len(hypotheses), len(references))
 
-    def corpus_score(self, hypotheses: list[str], references: list[str], *_) -> float:
+    def corpus_score(
+        self, hypotheses: list[str], references: list[str], *_, **__
+    ) -> float:
         """Calculate the corpus-level score.
 
         Args:

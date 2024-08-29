@@ -1,3 +1,4 @@
+import argparse
 import logging
 import sys
 from argparse import Namespace
@@ -5,7 +6,7 @@ from pathlib import Path
 from typing import Sequence
 
 import simple_parsing
-from simple_parsing.wrappers.field_wrapper import FieldWrapper
+from simple_parsing.wrappers.field_wrapper import ArgumentGenerationMode, FieldWrapper
 
 logger = logging.getLogger(__name__)
 
@@ -110,3 +111,13 @@ class ArgumentParser(simple_parsing.ArgumentParser):
 
         parsed_args = self._postprocessing(parsed_args)
         return parsed_args, unparsed_args
+
+
+class DataclassWrapper(simple_parsing.wrappers.DataclassWrapper):
+    def add_arguments(self, parser: argparse.ArgumentParser) -> None:
+        if self._name == "common":
+            FieldWrapper.argument_generation_mode = ArgumentGenerationMode.FLAT
+        else:
+            FieldWrapper.argument_generation_mode = ArgumentGenerationMode.NESTED
+        super().add_arguments(parser)
+        FieldWrapper.argument_generation_mode = ArgumentGenerationMode.NESTED
