@@ -38,7 +38,7 @@ Supported metrics are listed below.
    * - XCOMET
      - :code:`xcomet`
      - :doc:`MetricXCOMET <./source/mbrs.metrics.xcomet>`
-     - `(Guerreiro et al., 2023) <https://arxiv.org/abs/2310.10482>`_
+     - `(Guerreiro et al., 2023) <https://doi.org/10.1162/tacl_a_00683>`_
    * - BLEURT
      - :code:`bleurt`
      - :doc:`MetricBLEURT <./source/mbrs.metrics.bleurt>`

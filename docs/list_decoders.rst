@@ -44,7 +44,7 @@ Expectation estimations
      - (`Eikema and Aziz, 2020 <https://aclanthology.org/2020.coling-main.398>`_; `Eikema and Aziz, 2022 <https://aclanthology.org/2022.emnlp-main.754>`_)
    * - Model-based
      - :code:`--reference_lprobs=lprobs.txt`
-     - `(Jinnai et al., 2024) <https://arxiv.org/abs/2311.05263>`_
+     - `(Jinnai et al., 2024) <https://proceedings.mlr.press/v235/jinnai24a.html>`_
 
 Efficient MBR decoders
 ----------------------
@@ -69,15 +69,15 @@ Efficient MBR decoders
      - .. list-table::
 
          * - BLEU: N-gram and length aggregation `(DeNero et al., 2009) <https://aclanthology.org/P09-1064>`_
-         * - chrF: N-gram aggregation `(Vamvas and Sennrich, 2024) <https://arxiv.org/abs/2402.04251>`_
-         * - COMET: Embedding aggregation (`Vamvas and Sennrich, 2024 <https://arxiv.org/abs/2402.04251>`_; `Deguchi et al., 2024 <https://arxiv.org/abs/2402.11197>`_)
+         * - chrF: N-gram aggregation `(Vamvas and Sennrich, 2024) <https://aclanthology.org/2024.acl-short.71>`_
+         * - COMET: Embedding aggregation (`Vamvas and Sennrich, 2024 <https://aclanthology.org/2024.acl-short.71>`_; `Deguchi et al., 2024 <https://aclanthology.org/2024.findings-acl.654>`_)
 
-     - (`DeNero et al., 2009 <https://aclanthology.org/P09-1064>`_; `Vamvas and Sennrich, 2024 <https://arxiv.org/abs/2402.04251>`_)
+     - (`DeNero et al., 2009 <https://aclanthology.org/P09-1064>`_; `Vamvas and Sennrich, 2024 <https://aclanthology.org/2024.acl-short.71>`_)
    * - Centroid-based aggregation
      - :code:`centroid_mbr`
      - :doc:`DecoderCentroidMBR <./source/mbrs.decoders.centroid_mbr>`
      - COMET
-     - `(Deguchi et al., 2024) <https://arxiv.org/abs/2402.11197>`_
+     - `(Deguchi et al., 2024) <https://aclanthology.org/2024.findings-acl.654>`_
    * - Low-Rank Matrix Completion (Probabilistic MBR)
      - :code:`probabilistic_mbr`
      - :doc:`DecoderProbabilisticMBR <./source/mbrs.decoders.probabilistic_mbr>`

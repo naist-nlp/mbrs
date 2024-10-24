@@ -146,7 +146,7 @@ Currently, the following metrics are supported:
     2020)](https://aclanthology.org/2020.emnlp-main.213): `comet`
 -   COMETkiwi [(Rei et al.,
     2022)](https://aclanthology.org/2022.wmt-1.60): `cometkiwi`
--   XCOMET [(Guerreiro et al., 2023)](https://arxiv.org/abs/2310.10482):
+-   XCOMET [(Guerreiro et al., 2023)](https://doi.org/10.1162/tacl_a_00683):
     `xcomet`
 -   BLEURT [(Sellam et al.,
     2020)](https://aclanthology.org/2020.acl-main.704): `bleurt` (thanks
@@ -166,7 +166,7 @@ Specifically, the following methods of MBR decoding are included:
         2020](https://aclanthology.org/2020.coling-main.398); [Eikema
         and Aziz, 2022](https://aclanthology.org/2022.emnlp-main.754))
     -   Model-based estimation [(Jinnai et al.,
-        2024)](https://arxiv.org/abs/2311.05263): `--reference_lprobs`
+        2024)](https://proceedings.mlr.press/v235/jinnai24a.html): `--reference_lprobs`
         option
 -   Efficient methods:
     -   Confidence-based pruning [(Cheng and Vlachos,
@@ -174,16 +174,16 @@ Specifically, the following methods of MBR decoding are included:
         `pruning_mbr`
     -   Reference aggregation ([DeNero et al.,
         2009](https://aclanthology.org/P09-1064); [Vamvas and Sennrich,
-        2024](https://arxiv.org/abs/2402.04251)): `aggregate_mbr`
+        2024](https://aclanthology.org/2024.acl-short.71)): `aggregate_mbr`
         -   N-gram aggregation on BLEU [(DeNero et al.,
             2009)](https://aclanthology.org/P09-1064)
         -   N-gram aggregation on chrF [(Vamvas and Sennrich,
-            2024)](https://arxiv.org/abs/2402.04251)
+            2024)](https://aclanthology.org/2024.acl-short.71)
         -   Embedding aggregation on COMET ([Vamvas and Sennrich,
-            2024](https://arxiv.org/abs/2402.04251); [Deguchi et al.,
-            2024](https://arxiv.org/abs/2402.11197))
+            2024](https://aclanthology.org/2024.acl-short.71); [Deguchi et al.,
+            2024](https://aclanthology.org/2024.findings-acl.654))
     -   Centroid-based MBR [(Deguchi et al.,
-        2024)](https://arxiv.org/abs/2402.11197): `centroid_mbr`
+        2024)](https://aclanthology.org/2024.findings-acl.654): `centroid_mbr`
     -   Probabilistic MBR [(Trabelsi et al.,
         2024)](https://arxiv.org/abs/2406.02832): `probabilistic_mbr`
 

@@ -6,7 +6,7 @@ name: pytest
 on:
   # Trigger the workflow on push to main or any pull request
   push:
-    branches: ["main"]
+    branches: ["main", "develop"]
   pull_request:
     types: ["opened", "synchronize"]
 
