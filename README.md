@@ -148,6 +148,8 @@ Currently, the following metrics are supported:
     2022)](https://aclanthology.org/2022.wmt-1.60): `cometkiwi`
 -   XCOMET [(Guerreiro et al., 2023)](https://doi.org/10.1162/tacl_a_00683):
     `xcomet`
+-   XCOMET-lite [(Larionov et al., 2024)](https://aclanthology.org/2024.emnlp-main.1223):
+    `xcomet`
 -   BLEURT [(Sellam et al.,
     2020)](https://aclanthology.org/2020.acl-main.704): `bleurt` (thanks
     to [\@lucadiliello](https://github.com/lucadiliello/bleurt-pytorch))
