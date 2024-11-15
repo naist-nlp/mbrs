@@ -123,7 +123,15 @@ class XCOMETLiteMetric(XCOMETMetric, PyTorchModelHubMixin):
 
 @register("xcomet")
 class MetricXCOMET(Metric):
-    """XCOMET metric class."""
+    """XCOMET metric class.
+
+    Both XCOMET (Guerreiro et al., 2024) and XCOMET-lite (Larionov et al., 2024) are supported.
+
+    Supported models:
+        - Unbabel/XCOMET-XL
+        - Unbabel/XCOMET-XXL
+        - myyycroft/XCOMET-lite
+    """
 
     scorer: XCOMETMetric
 

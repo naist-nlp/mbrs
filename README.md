@@ -13,7 +13,7 @@
 </p>
 <p align="center">
 <b>
-      <a href="https://arxiv.org/abs/2408.04167">Paper</a> |
+      <a href="https://aclanthology.org/2024.emnlp-demo.37">Paper</a> |
       <a href="https://mbrs.readthedocs.io">Reference docs</a> |
       <a href="https://github.com/naist-nlp/mbrs#citation">Citation</a>
 </b>
@@ -149,7 +149,7 @@ Currently, the following metrics are supported:
 -   XCOMET [(Guerreiro et al., 2023)](https://doi.org/10.1162/tacl_a_00683):
     `xcomet`
 -   XCOMET-lite [(Larionov et al., 2024)](https://aclanthology.org/2024.emnlp-main.1223):
-    `xcomet`
+    `xcomet` with `--metric.model="myyycroft/XCOMET-lite"`
 -   BLEURT [(Sellam et al.,
     2020)](https://aclanthology.org/2020.acl-main.704): `bleurt` (thanks
     to [\@lucadiliello](https://github.com/lucadiliello/bleurt-pytorch))
@@ -215,14 +215,22 @@ The final output list is selected according to these selectors:
 If you use this software, please cite:
 
 ``` bibtex
-@misc{deguchi-2024-mbrs,
-   title={mbrs: A Library for Minimum Bayes Risk Decoding},
-   author={Hiroyuki Deguchi and Yusuke Sakai and Hidetaka Kamigaito and Taro Watanabe},
-   year={2024},
-   eprint={2408.04167},
-   archivePrefix={arXiv},
-   primaryClass={cs.CL},
-   url={https://arxiv.org/abs/2408.04167},
+@inproceedings{deguchi-etal-2024-mbrs,
+    title = "mbrs: A Library for Minimum {B}ayes Risk Decoding",
+    author = "Deguchi, Hiroyuki  and
+      Sakai, Yusuke  and
+      Kamigaito, Hidetaka  and
+      Watanabe, Taro",
+    editor = "Hernandez Farias, Delia Irazu  and
+      Hope, Tom  and
+      Li, Manling",
+    booktitle = "Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: System Demonstrations",
+    month = nov,
+    year = "2024",
+    address = "Miami, Florida, USA",
+    publisher = "Association for Computational Linguistics",
+    url = "https://aclanthology.org/2024.emnlp-demo.37",
+    pages = "351--362",
 }
 ```
 
