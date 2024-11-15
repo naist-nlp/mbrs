@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from typing import Optional
 
@@ -32,6 +33,7 @@ class DeBERTaEncoder(BERTEncoder):
         self, pretrained_model: str, load_pretrained_weights: bool = True
     ) -> None:
         super(Encoder, self).__init__()
+        os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
         self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
         if load_pretrained_weights:
             self.model = AutoModel.from_pretrained(pretrained_model)
