@@ -17,6 +17,7 @@ REFERENCES = [
 ]
 
 
+@pytest.mark.metrics_metricx24
 class TestMetricMetricX24:
     PAIRWISE_SCORES = torch.Tensor(
         [
@@ -118,6 +119,7 @@ class TestMetricMetricX24:
         )
 
 
+@pytest.mark.metrics_metricx23
 class TestMetricMetricX23:
     PAIRWISE_SCORES = torch.Tensor(
         [
@@ -202,6 +204,7 @@ class TestMetricMetricX23:
         )
 
 
+@pytest.mark.metrics_metricx23qe
 class TestMetricMetricX23QE:
     QE_SCORES = torch.Tensor([0.34737, 0.45215, 0.79827, 13.10156])
 

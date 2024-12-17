@@ -27,19 +27,27 @@ class DeBERTaEncoder(BERTEncoder):
         pretrained_model (str): Pretrained model from hugging face.
         load_pretrained_weights (bool): If set to True loads the pretrained weights
             from Hugging Face
+        local_files_only (bool): Whether or not to only look at local files.
     """
 
     def __init__(
-        self, pretrained_model: str, load_pretrained_weights: bool = True
+        self,
+        pretrained_model: str,
+        load_pretrained_weights: bool = True,
+        local_files_only: bool = False,
     ) -> None:
         super(Encoder, self).__init__()
         os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
-        self.tokenizer = AutoTokenizer.from_pretrained(pretrained_model)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            pretrained_model, local_files_only=local_files_only
+        )
         if load_pretrained_weights:
             self.model = AutoModel.from_pretrained(pretrained_model)
         else:
             self.model = AutoModel.from_config(
-                AutoConfig.from_pretrained(pretrained_model),
+                AutoConfig.from_pretrained(
+                    pretrained_model, local_files_only=local_files_only
+                ),
             )
         self.model.encoder.output_hidden_states = True
 
@@ -54,7 +62,10 @@ class DeBERTaEncoder(BERTEncoder):
 
     @classmethod
     def from_pretrained(
-        cls, pretrained_model: str, load_pretrained_weights: bool = True
+        cls,
+        pretrained_model: str,
+        load_pretrained_weights: bool = True,
+        local_files_only: bool = False,
     ) -> Encoder:
         """Function that loads a pretrained encoder from Hugging Face.
 
@@ -62,11 +73,14 @@ class DeBERTaEncoder(BERTEncoder):
             pretrained_model (str):Name of the pretrain model to be loaded.
             load_pretrained_weights (bool): If set to True loads the pretrained weights
                 from Hugging Face
+            local_files_only (bool): Whether or not to only look at local files.
 
         Returns:
             DeBERTaEncoder: DeBERTaEncoder object.
         """
-        return DeBERTaEncoder(pretrained_model, load_pretrained_weights)
+        return DeBERTaEncoder(
+            pretrained_model, load_pretrained_weights, local_files_only=local_files_only
+        )
 
     def forward(
         self,

@@ -24,12 +24,12 @@ SCORES = torch.Tensor(
 )
 
 
-@pytest.fixture(scope="module")
-def metric_bleurt():
-    return MetricBLEURT(MetricBLEURT.Config())
-
-
+@pytest.mark.metrics_bleurt
 class TestMetricBLEURT:
+    @pytest.fixture(scope="class")
+    def metric_bleurt(self):
+        return MetricBLEURT(MetricBLEURT.Config())
+
     def test_score(self, metric_bleurt: MetricBLEURT):
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):

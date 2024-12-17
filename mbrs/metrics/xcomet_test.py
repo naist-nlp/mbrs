@@ -33,10 +33,12 @@ SCORES_XCOMETLITE = torch.Tensor(
 )
 
 
-@pytest.mark.skipif(
-    not torch.cuda.is_available(), reason="CUDA is not available on this machine."
-)
+@pytest.mark.metrics_xcomet
 class TestMetricXCOMET:
+    @pytest.fixture(scope="class")
+    def metric_xcomet(self):
+        return MetricXCOMET(MetricXCOMET.Config())
+
     def test_score(self, metric_xcomet: MetricXCOMET):
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):
@@ -97,6 +99,7 @@ class TestMetricXCOMET:
         )
 
 
+@pytest.mark.metrics_xcometlite
 class TestMetricXCOMETLite:
     @pytest.fixture(scope="class")
     def metric_xcometlite(self):
