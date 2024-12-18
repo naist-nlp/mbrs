@@ -9,6 +9,7 @@ authors = [
 requires-python = ">=3.10"
 dependencies = [
     "bleurt-pytorch>=0.0.1",
+    "fastchrf>=0.1.0",
     "numpy>=1.26.4",
     "sacrebleu[ja,ko]>=2.4.3",
     "simple-parsing>=0.1.6",
