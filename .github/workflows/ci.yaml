@@ -16,6 +16,14 @@ jobs:
       matrix:
         platform: ["ubuntu-latest", "windows-latest"]
         python-version: ["3.10", "3.11"]
+        pytest_marker:
+          - null
+          - "metrics_bertscore"
+          - "metrics_bleurt"
+          - "metrics_xcometlite"
+          - "metrics_metricx24"
+          - "metrics_metricx23"
+          - "metrics_metricx23qe"
     runs-on: ${{ matrix.platform }}
     steps:
     - uses: actions/checkout@v4
@@ -30,132 +38,4 @@ jobs:
     - name: Test with pytest
       run: |
         uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest
-
-  metrics_bertscore:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.platform }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_bertscore"
-
-  metrics_bleurt:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.platform }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_bleurt"
-
-  metrics_xcometlite:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-
-    runs-on: ${{ matrix.platform }}
-
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_xcometlite"
-
-  metrics_metricx24:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.platform }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_metricx24"
-
-  metrics_metricx23:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.platform }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_metricx23"
-
-  metrics_metricx23qe:
-    strategy:
-      matrix:
-        platform: ["ubuntu-latest", "windows-latest"]
-        python-version: ["3.10", "3.11"]
-    runs-on: ${{ matrix.platform }}
-    steps:
-    - uses: actions/checkout@v4
-    - name: Install uv
-      uses: astral-sh/setup-uv@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install
-    - name: Install the project
-      run: uv sync --all-extras --dev
-    - name: Test with pytest
-      run: |
-        uv run huggingface-cli login --token ${{ secrets.HUGGINGFACE_TOKEN }}
-        uv run pytest -m "metrics_metricx23qe"
+        uv run pytest ${{ matrix.pytest_marker && format('-m {0}', matrix.pytest_marker) || '' }}
