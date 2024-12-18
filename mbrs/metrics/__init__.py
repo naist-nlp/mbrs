@@ -19,6 +19,7 @@ from .bleurt import MetricBLEURT
 from .chrf import MetricChrF
 from .comet import MetricCOMET
 from .cometkiwi import MetricCOMETkiwi
+from .metricx import MetricMetricX
 from .ter import MetricTER
 from .xcomet import MetricXCOMET
 
@@ -32,6 +33,7 @@ __all__ = [
     "MetricChrF",
     "MetricCOMET",
     "MetricCOMETkiwi",
+    "MetricMetricX",
     "MetricTER",
     "MetricXCOMET",
     "MetricBLEURT",

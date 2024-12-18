@@ -1,7 +1,6 @@
 import pytest
-import torch
 
-from mbrs.metrics import MetricBLEU, MetricCOMET, MetricCOMETkiwi, Metrics, MetricXCOMET
+from mbrs.metrics import MetricBLEU, MetricCOMET, MetricCOMETkiwi, Metrics
 from mbrs.selectors import SelectorDiverse, SelectorNbest
 
 
@@ -13,14 +12,6 @@ def metric_comet():
 @pytest.fixture(scope="session")
 def metric_cometkiwi():
     return MetricCOMETkiwi(MetricCOMETkiwi.Config())
-
-
-@pytest.mark.skipif(
-    not torch.cuda.is_available(), reason="CUDA is not available on this machine."
-)
-@pytest.fixture(scope="session")
-def metric_xcomet():
-    return MetricXCOMET(MetricXCOMET.Config())
 
 
 @pytest.fixture(
@@ -36,3 +27,27 @@ def metric_xcomet():
 )
 def selector(request):
     return request.param
+
+
+def should_skip(markexpr: str, markers: list[str]) -> bool:
+    if markers:
+        if not markexpr:
+            return True
+    else:
+        return False
+
+    for marker in markers:
+        if f"not {marker}" in markexpr:
+            return True
+        elif marker in markexpr:
+            return False
+    return True
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]):
+    markexpr: str = config.option.markexpr
+    skip_marker = pytest.mark.skip(reason="Excluded by default.")
+    for item in items:
+        markers = [marker for marker in item.keywords if marker.startswith("metrics_")]
+        if should_skip(markexpr, markers):
+            item.add_marker(skip_marker)

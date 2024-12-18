@@ -44,6 +44,16 @@ omit = ["*_test.py"]
 [tool.ruff.lint]
 extend-select = ["I"]
 
+[tool.pytest.ini_options]
+markers = [
+  "metrics_bleurt: Test for BLEURT",
+  "metrics_xcomet: Test for xCOMET",
+  "metrics_xcometlite: Test for xCOMET-lite",
+  "metrics_metricx23: Test for MetricX-23",
+  "metrics_metricx23qe: Test for MetricX-23-QE",
+  "metrics_metricx24: Test for MetricX-24"
+]
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

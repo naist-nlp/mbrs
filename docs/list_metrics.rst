@@ -47,3 +47,7 @@ Supported metrics are listed below.
      - :code:`bleurt`
      - :doc:`MetricBLEURT <./source/mbrs.metrics.bleurt>`
      - `(Sellam et al., 2020) <https://aclanthology.org/2020.acl-main.704>`_
+   * - MetricX
+     - :code:`metricx`
+     - :doc:`MetricMetricX <./source/mbrs.metrics.metricx>`
+     - `(Juraska et al., 2023) <https://aclanthology.org/2023.wmt-1.63>`_ `(Juraska et al., 2024) <https://aclanthology.org/2024.wmt-1.35>`_
