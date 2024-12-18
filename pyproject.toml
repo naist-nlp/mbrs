@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.10"
 dependencies = [
+    "bert-score>=0.3.13",
     "bleurt-pytorch>=0.0.1",
     "fastchrf>=0.1.0",
     "numpy>=1.26.4",
@@ -36,6 +37,7 @@ extend-select = ["I"]
 
 [tool.pytest.ini_options]
 markers = [
+  "metrics_bertscore: Test for BERTScore",
   "metrics_bleurt: Test for BLEURT",
   "metrics_xcomet: Test for xCOMET",
   "metrics_xcometlite: Test for xCOMET-lite",

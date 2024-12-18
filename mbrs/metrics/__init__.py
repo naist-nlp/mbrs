@@ -14,6 +14,7 @@ from .base import (
 
 register, get_metric = registry.setup("metric")
 
+from .bertscore import MetricBERTScore
 from .bleu import MetricBLEU
 from .bleurt import MetricBLEURT
 from .chrf import MetricChrF
@@ -29,6 +30,7 @@ __all__ = [
     "MetricAggregatable",
     "MetricCacheable",
     "MetricReferenceless",
+    "MetricBERTScore",
     "MetricBLEU",
     "MetricChrF",
     "MetricCOMET",

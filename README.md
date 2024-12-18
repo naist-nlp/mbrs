@@ -155,6 +155,7 @@ Currently, the following metrics are supported:
     to [\@lucadiliello](https://github.com/lucadiliello/bleurt-pytorch))
 -   MetricX ([Juraska et al., 2023](https://aclanthology.org/2023.wmt-1.63);
     [Juraska et al., 2024](https://aclanthology.org/2024.wmt-1.35)): `metricx`
+-   BERTScore [(Zhang et al., 2020)](https://openreview.net/forum?id=SkeHuCVFDr): `bertscore`
 
 ### Decoders
 
