@@ -7,6 +7,7 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass
 from typing import Optional
 
+import fastchrf
 import torch
 from sacrebleu.metrics.chrf import CHRF
 from sacrebleu.metrics.helpers import extract_all_char_ngrams, extract_word_ngrams
@@ -33,6 +34,7 @@ class MetricChrF(MetricAggregatable):
         - eps_smoothing (bool): If `True`, applies epsilon smoothing similar to reference chrF++.py, NLTK and Moses implementations.
             Otherwise, it takes into account effective match order similar to sacreBLEU < 2.0.0.
         - num_workers (int): Number of workers for multiprocessing.
+        - fastchrf (bool): Use the rust implementation of chrF.
         """
 
         char_order: int = 6
@@ -42,6 +44,11 @@ class MetricChrF(MetricAggregatable):
         whitespace: bool = False
         eps_smoothing: bool = False
         num_workers: int = 8
+        fastchrf: bool = False
+
+        def __post_init__(self):
+            if self.fastchrf and self.word_order > 0:
+                raise ValueError("fastchrf does not support the `word_order` option.")
 
     cfg: Config
 
@@ -65,6 +72,54 @@ class MetricChrF(MetricAggregatable):
             eps_smoothing=cfg.eps_smoothing,
         )
 
+    def _fastchrf_pairwise_scores(
+        self, hypotheses_lists: list[list[str]], references_lists: list[list[str]]
+    ) -> Tensor:
+        """Calculate the pairwise scores using fastchrf.
+
+        Args:
+            hypotheses_lists (list[list[str]]): N lists of hypotheses.
+            references_lists (list[list[str]]): N lists of references.
+
+        Returns:
+            Tensor: Score matrix of shape `(N, H, R)`, where `H` is the number
+              of hypotheses and `R` is the number of references.
+        """
+        return Tensor(
+            fastchrf.pairwise_chrf(
+                hypotheses_lists,
+                references_lists,
+                char_order=self.cfg.char_order,
+                beta=float(self.cfg.beta),
+                remove_whitespace=not self.cfg.whitespace,
+                eps_smoothing=self.cfg.eps_smoothing,
+            )
+        )
+
+    def _fastchrf_expected_scores_reference_aggregation(
+        self, hypotheses_lists: list[list[str]], references_lists: list[list[str]]
+    ) -> Tensor:
+        """Calculate the expected scores with reference aggregation using fastchrf.
+
+        Args:
+            hypotheses_lists (list[list[str]]): N lists of hypotheses.
+            references_lists (list[list[str]]): N lists of references.
+
+        Returns:
+            Tensor: Score matrix of shape `(N, H)`, where `H` is the number
+              of hypotheses.
+        """
+        return Tensor(
+            fastchrf.aggregate_chrf(
+                hypotheses_lists,
+                references_lists,
+                char_order=self.cfg.char_order,
+                beta=float(self.cfg.beta),
+                remove_whitespace=not self.cfg.whitespace,
+                eps_smoothing=self.cfg.eps_smoothing,
+            )
+        )
+
     def score(self, hypothesis: str, reference: str, *_, **__) -> float:
         """Calculate the score of the given hypothesis.
 
@@ -75,6 +130,9 @@ class MetricChrF(MetricAggregatable):
         Returns:
             float: The score of the given hypothesis.
         """
+        if self.cfg.fastchrf:
+            return self._fastchrf_pairwise_scores([[hypothesis]], [[reference]]).item()
+
         return self.scorer.sentence_score(hypothesis, [reference]).score
 
     def scores(self, hypotheses: list[str], references: list[str], *_, **__) -> Tensor:
@@ -87,6 +145,14 @@ class MetricChrF(MetricAggregatable):
         Returns:
             Tensor: The N scores of the given hypotheses.
         """
+        if self.cfg.fastchrf:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses))
+                return self._fastchrf_pairwise_scores(
+                    [[hypothesis] for hypothesis in hypotheses],
+                    [[reference] for reference in references],
+                ).flatten()
+
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=self.cfg.num_workers,
         ) as executor:
@@ -116,6 +182,13 @@ class MetricChrF(MetricAggregatable):
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
+        if self.cfg.fastchrf:
+            with timer.measure("score") as t:
+                t.set_delta_ncalls(len(hypotheses) * len(references))
+                return self._fastchrf_pairwise_scores(
+                    [hypotheses], [references]
+                ).squeeze(0)
+
         with concurrent.futures.ProcessPoolExecutor(
             max_workers=self.cfg.num_workers
         ) as executor:
@@ -202,6 +275,15 @@ class MetricChrF(MetricAggregatable):
         Returns:
             Tensor: The expected scores for each hypothesis.
         """
+        if self.cfg.fastchrf:
+            if reference_lprobs is not None:
+                raise ValueError("fastchrf does not support model-based aggregation.")
+
+            with timer.measure("expectation"):
+                return self._fastchrf_expected_scores_reference_aggregation(
+                    [hypotheses], [references]
+                ).squeeze(0)
+
         with timer.measure("aggregate/references"):
             aggregated_reference = self._aggregate_references(
                 references, reference_lprobs=reference_lprobs

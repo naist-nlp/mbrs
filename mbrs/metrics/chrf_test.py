@@ -1,6 +1,7 @@
 import multiprocessing
 import sys
 
+import pytest
 import torch
 
 from .chrf import MetricChrF
@@ -28,16 +29,26 @@ EXPECTED_SCORES_AGGREGATED = torch.Tensor([23.08157, 10.29285, 16.35524, 29.1629
 
 
 class TestMetricChrF:
-    def test_score(self):
-        metric = MetricChrF(MetricChrF.Config())
+    @pytest.mark.parametrize("fastchrf", [False, True])
+    def test_config(self, fastchrf: bool):
+        if fastchrf:
+            with pytest.raises(ValueError):
+                MetricChrF.Config(word_order=2, fastchrf=fastchrf)
+        else:
+            MetricChrF(MetricChrF.Config(word_order=2, fastchrf=fastchrf))
+
+    @pytest.mark.parametrize("fastchrf", [False, True])
+    def test_score(self, fastchrf: bool):
+        metric = MetricChrF(MetricChrF.Config(fastchrf=fastchrf))
         for i, hyp in enumerate(HYPOTHESES):
             for j, ref in enumerate(REFERENCES):
                 assert torch.isclose(
                     SCORES[i, j], torch.tensor(metric.score(hyp, ref)), atol=0.0005
                 )
 
-    def test_expected_scores(self):
-        metric = MetricChrF(MetricChrF.Config())
+    @pytest.mark.parametrize("fastchrf", [False, True])
+    def test_expected_scores(self, fastchrf: bool):
+        metric = MetricChrF(MetricChrF.Config(fastchrf=fastchrf))
         expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
         torch.testing.assert_close(
             expected_scores,
@@ -45,7 +56,7 @@ class TestMetricChrF:
             atol=0.0005,
             rtol=1e-4,
         )
-        if sys.platform == "linux":
+        if not fastchrf and sys.platform == "linux":
             default_method = multiprocessing.get_start_method()
             multiprocessing.set_start_method("spawn", force=True)
             expected_scores = metric.expected_scores(HYPOTHESES, REFERENCES)
@@ -54,7 +65,8 @@ class TestMetricChrF:
             )
             multiprocessing.set_start_method(default_method, force=True)
 
-    def test_scores(self):
+    @pytest.mark.parametrize("fastchrf", [False, True])
+    def test_scores(self, fastchrf: bool):
         hyps = [
             "this is a test",
             "another test",
@@ -93,8 +105,9 @@ class TestMetricChrF:
             torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(53.90979)
         )
 
-    def test_expected_scores_reference_aggregation(self):
-        metric = MetricChrF(MetricChrF.Config())
+    @pytest.mark.parametrize("fastchrf", [False, True])
+    def test_expected_scores_reference_aggregation(self, fastchrf: bool):
+        metric = MetricChrF(MetricChrF.Config(fastchrf=fastchrf))
         expected_scores = metric.expected_scores_reference_aggregation(
             HYPOTHESES, REFERENCES
         )
@@ -102,14 +115,22 @@ class TestMetricChrF:
             expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
         )
 
-        expected_scores = metric.expected_scores_reference_aggregation(
-            HYPOTHESES,
-            REFERENCES,
-            reference_lprobs=torch.Tensor([-2.000]).repeat(len(REFERENCES)),
-        )
-        torch.testing.assert_close(
-            expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
-        )
+        if fastchrf:
+            with pytest.raises(ValueError):
+                metric.expected_scores_reference_aggregation(
+                    HYPOTHESES,
+                    REFERENCES,
+                    reference_lprobs=torch.Tensor([-2.000]).repeat(len(REFERENCES)),
+                )
+        else:
+            expected_scores = metric.expected_scores_reference_aggregation(
+                HYPOTHESES,
+                REFERENCES,
+                reference_lprobs=torch.Tensor([-2.000]).repeat(len(REFERENCES)),
+            )
+            torch.testing.assert_close(
+                expected_scores, EXPECTED_SCORES_AGGREGATED, atol=0.0005, rtol=1e-4
+            )
 
     def test_expected_scores_reference_aggregation_empty_inputs(self):
         metric = MetricChrF(MetricChrF.Config())
