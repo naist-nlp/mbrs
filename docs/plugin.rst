@@ -47,7 +47,7 @@ This tutorial explains how to load a user defined modules.
         --decoder mbr \
         --metric my_bleu
 
-   `mbrs-score` also supports plug-in loading.
+   :code:`mbrs-score` also supports plug-in loading.
 
    .. code-block:: bash
       :emphasize-lines: 2,5
