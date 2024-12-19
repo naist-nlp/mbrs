@@ -9,25 +9,24 @@ from argparse import Namespace
 from dataclasses import asdict, dataclass
 from typing import Sequence
 
+logging.basicConfig(
+    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    level=os.environ.get("LOGLEVEL", "INFO").upper(),
+    stream=sys.stderr,
+)
+logger = logging.getLogger(__name__)
+
 import simple_parsing
 from simple_parsing import choice, field, flag
 from simple_parsing.wrappers import dataclass_wrapper
 
 from mbrs import registry
 from mbrs.args import ArgumentParser
-from mbrs.metrics import Metric, get_metric
-from mbrs.metrics.base import MetricReferenceless
+from mbrs.metrics import Metric, MetricReferenceless, get_metric
 
 simple_parsing.parsing.logger.setLevel(logging.ERROR)
 dataclass_wrapper.logger.setLevel(logging.ERROR)
-
-logging.basicConfig(
-    format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
-)
-logger = logging.getLogger(__name__)
 
 
 class Format(enum.Enum):
@@ -48,7 +47,9 @@ class CommonArguments:
     # Output format.
     format: Format = choice(Format, default=Format.json)
     # Type of the metric.
-    metric: str = choice(*registry.get_registry("metric").keys(), default="bleu")
+    metric: str = field(
+        default="bleu", metadata={"choices": registry.get_registry("metric")}
+    )
     # No verbose information and report.
     quiet: bool = flag(default=False)
     # Number of digits for values of float point.
@@ -61,11 +62,12 @@ def get_argparser(args: Sequence[str] | None = None) -> ArgumentParser:
     for _field in meta_parser._wrappers[0].fields:
         _field.required = False
     known_args, _ = meta_parser.parse_known_args(args=args)
-    metric_type = get_metric(known_args.common.metric)
 
     parser = ArgumentParser(add_help=True, add_config_path_arg=True)
     parser.add_arguments(CommonArguments, "common")
-    parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
+    parser.add_arguments(
+        get_metric(known_args.common.metric).Config, "metric", prefix="metric."
+    )
     return parser
 
 
@@ -92,8 +94,7 @@ def main(args: Namespace) -> None:
             references = f.readlines()
         assert num_sents == len(references)
 
-    metric_type = get_metric(args.common.metric)
-    metric: Metric = metric_type(args.metric)
+    metric: Metric | MetricReferenceless = get_metric(args.common.metric)(args.metric)
 
     if isinstance(metric, MetricReferenceless):
         assert sources is not None

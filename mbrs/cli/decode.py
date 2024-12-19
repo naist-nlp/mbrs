@@ -14,7 +14,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
-    stream=sys.stdout,
+    stream=sys.stderr,
 )
 logger = logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ from mbrs.decoders import (
 )
 from mbrs.metrics import Metric, MetricEnum, get_metric
 from mbrs.selectors import Selector, get_selector
+
 
 simple_parsing.parsing.logger.setLevel(logging.ERROR)
 dataclass_wrapper.logger.setLevel(logging.ERROR)
@@ -66,11 +67,17 @@ class CommonArguments:
     # Number of references for each sentence.
     num_references: int | None = field(default=None)
     # Type of the decoder.
-    decoder: str = choice(*registry.get_registry("decoder").keys(), default="mbr")
+    decoder: str = field(
+        default="mbr", metadata={"choices": registry.get_registry("decoder")}
+    )
     # Type of the metric.
-    metric: str = choice(*registry.get_registry("metric").keys(), default="bleu")
+    metric: str = field(
+        default="bleu", metadata={"choices": registry.get_registry("metric")}
+    )
     # Type of the selector.
-    selector: str = choice(*registry.get_registry("selector").keys(), default="nbest")
+    selector: str = field(
+        default="nbest", metadata={"choices": registry.get_registry("selector")}
+    )
     # Return the n-best hypotheses.
     nbest: int = field(default=1)
     # No verbose information and report.
@@ -174,16 +181,11 @@ def main(args: Namespace) -> None:
             reference_lprobs = f.readlines()
         assert len(references) == len(reference_lprobs)
 
-    metric_type = get_metric(args.common.metric)
-    metric: Metric = metric_type(args.metric)
-
-    selector_type = get_selector(args.common.selector)
-    selector: Selector = selector_type(args.selector)
-
-    decoder_type = get_decoder(args.common.decoder)
-    decoder: DecoderReferenceBased | DecoderReferenceless = decoder_type(
-        args.decoder, metric, selector
-    )
+    metric: Metric = get_metric(args.common.metric)(args.metric)
+    selector: Selector = get_selector(args.common.selector)(args.selector)
+    decoder: DecoderReferenceBased | DecoderReferenceless = get_decoder(
+        args.common.decoder
+    )(args.decoder, metric, selector)
 
     num_cands = args.common.num_candidates
     num_refs = args.common.num_references or num_cands
