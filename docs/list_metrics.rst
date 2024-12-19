@@ -51,3 +51,7 @@ Supported metrics are listed below.
      - :code:`metricx`
      - :doc:`MetricMetricX <./source/mbrs.metrics.metricx>`
      - `(Juraska et al., 2023) <https://aclanthology.org/2023.wmt-1.63>`_ `(Juraska et al., 2024) <https://aclanthology.org/2024.wmt-1.35>`_
+   * - BERTScore
+     - :code:`bertscore`
+     - :doc:`MetricBERTScore <./source/mbrs.metrics.bertscore>`
+     - `(Zhang et al., 2020) <https://openreview.net/forum?id=SkeHuCVFDr>`_

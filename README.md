@@ -15,7 +15,8 @@
 <b>
       <a href="https://aclanthology.org/2024.emnlp-demo.37">Paper</a> |
       <a href="https://mbrs.readthedocs.io">Reference docs</a> |
-      <a href="https://github.com/naist-nlp/mbrs#citation">Citation</a>
+      <a href="https://github.com/naist-nlp/mbrs#citation">Citation</a> |
+      <a href="https://github.com/naist-nlp/mbrs/releases">Release notes</a>
 </b>
 </p>
 
@@ -33,6 +34,13 @@ For developers, it can be installed from the source.
 git clone https://github.com/naist-nlp/mbrs.git
 cd mbrs/
 pip install ./
+```
+
+For uv users:
+``` bash
+git clone https://github.com/naist-nlp/mbrs.git
+cd mbrs/
+uv sync
 ```
 
 ## Quick start
@@ -155,6 +163,7 @@ Currently, the following metrics are supported:
     to [\@lucadiliello](https://github.com/lucadiliello/bleurt-pytorch))
 -   MetricX ([Juraska et al., 2023](https://aclanthology.org/2023.wmt-1.63);
     [Juraska et al., 2024](https://aclanthology.org/2024.wmt-1.35)): `metricx`
+-   BERTScore [(Zhang et al., 2020)](https://openreview.net/forum?id=SkeHuCVFDr): `bertscore`
 
 ### Decoders
 
