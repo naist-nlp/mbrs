@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import argparse
+import importlib
 import logging
+import os
 import sys
 from argparse import Namespace
 from pathlib import Path
@@ -12,6 +16,47 @@ logger = logging.getLogger(__name__)
 
 
 class ArgumentParser(simple_parsing.ArgumentParser):
+    IMPORTED_MODULES: set[Path] = set()
+
+    def add_plugin_argumnets(self, parser: ArgumentParser) -> None:
+        """Add arguments for plugins.
+
+        Args:
+            parser (ArgumentParser): Argument parser.
+        """
+        parser.add_argument(
+            "--plugin_dir",
+            type=Path,
+            default=None,
+            help="Path to a directory containing user defined plugins.",
+        )
+
+    def import_plugin(self, plugin_dir: Path) -> None:
+        """Import plugin modules.
+
+        Args:
+            plugin_dir (pathlib.Path): A directory containing user defined plugins.
+        """
+        plugin_dir = plugin_dir.absolute()
+        if not os.path.exists(plugin_dir) or not os.path.isdir(
+            os.path.dirname(plugin_dir)
+        ):
+            raise FileNotFoundError(plugin_dir)
+
+        module_parent, module_name = os.path.split(plugin_dir)
+        if plugin_dir not in ArgumentParser.IMPORTED_MODULES:
+            if module_name not in sys.modules:
+                sys.path.insert(0, module_parent)
+                importlib.import_module(module_name)
+            elif plugin_dir in sys.modules[module_name].__path__:
+                logger.info(f"--plugin_dir={plugin_dir} has already been imported.")
+            else:
+                raise ImportError(
+                    f"Failed to import --plugin_dir={plugin_dir} because the module name "
+                    f"({module_name}) is not globally unique."
+                )
+            self.IMPORTED_MODULES.add(plugin_dir)
+
     def preprocess_parser(self) -> None:
         """Preprocess ArgumentParser."""
         self.parse_known_args_preprocess(sys.argv[1:])
@@ -66,6 +111,14 @@ class ArgumentParser(simple_parsing.ArgumentParser):
                     default=config_path,
                     help="Path to a config file containing default values to use.",
                 )
+
+            # Plugin loader
+            self.add_plugin_argumnets(temp_parser)
+            args_with_plugin_dir, args = temp_parser.parse_known_args(args)
+            plugin_dir: Path | None = args_with_plugin_dir.plugin_dir
+            if plugin_dir is not None:
+                self.import_plugin(plugin_dir)
+            self.add_plugin_argumnets(self)
 
         assert isinstance(args, list)
         self._preprocessing(args=args, namespace=namespace)

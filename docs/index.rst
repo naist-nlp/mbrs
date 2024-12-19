@@ -30,6 +30,7 @@ mbrs: A library for MBR decoding
       - :doc:`design`
       - :doc:`custom_metric`
       - :doc:`custom_decoder`
+      - :doc:`plugin`
       - :doc:`timer`
 
    .. grid-item-card:: :material-regular:`library_books;2em` References
@@ -66,6 +67,7 @@ mbrs: A library for MBR decoding
    design
    custom_metric
    custom_decoder
+   plugin
    timer
 
 .. toctree::
