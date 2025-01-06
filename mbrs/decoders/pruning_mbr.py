@@ -153,7 +153,7 @@ class DecoderPruningMBR(DecoderMBR):
                 num_winners = len(winners)
                 if num_winners >= nbest:
                     if isinstance(self.metric, MetricCacheable):
-                        hypotheses_ir = hypotheses_ir.index_select(0, winners)
+                        hypotheses_ir = hypotheses_ir[winners]
                     else:
                         hypotheses = [hypotheses[i] for i in winners]
                     pairwise_scores = pairwise_scores[winners]

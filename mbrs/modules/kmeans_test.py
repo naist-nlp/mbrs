@@ -48,12 +48,12 @@ def is_equal_shape(
 class TestKmeans:
     @pytest.mark.parametrize("kmeanspp", [False, True])
     def test___init__(self, kmeanspp: bool):
-        kmeans = Kmeans(kmeanspp)
-        assert kmeans.kmeanspp == kmeanspp
+        kmeans = Kmeans(Kmeans.Config(kmeanspp=kmeanspp))
+        assert kmeans.cfg.kmeanspp == kmeanspp
 
     def test_init_kmeanspp(self):
         x = torch.rand(N, D)
-        kmeans = Kmeans(kmeanspp=True)
+        kmeans = Kmeans(Kmeans.Config(kmeanspp=True, ncentroids=C))
         rng = torch.Generator(x.device)
         rng = rng.manual_seed(0)
         centroids = kmeans.init_kmeanspp(x, rng, C)
@@ -62,7 +62,7 @@ class TestKmeans:
     def test_assign(self):
         x = torch.rand(N, D)
         centroids = torch.rand(C, D)
-        kmeans = Kmeans()
+        kmeans = Kmeans(Kmeans.Config(ncentroids=C))
         assigns = kmeans.assign(x, centroids)
         expected = ((x[:, None] - centroids[None, :]) ** 2).sum(dim=-1).argmin(dim=1)
         assert torch.equal(assigns, expected)
@@ -70,8 +70,8 @@ class TestKmeans:
     @pytest.mark.parametrize("kmeanspp", [False, True])
     def test_train(self, kmeanspp: bool):
         torch.manual_seed(0)
-        kmeans = Kmeans(kmeanspp)
+        kmeans = Kmeans(Kmeans.Config(kmeanspp=kmeanspp, ncentroids=C))
         x = torch.rand(N, D)
-        centroids, assigns = kmeans.train(x, C)
+        centroids, assigns = kmeans.train(x)
         assert is_equal_shape(centroids, [C, D])
         assert is_equal_shape(assigns, [N])

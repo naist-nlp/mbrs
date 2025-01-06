@@ -7,6 +7,7 @@ from mbrs import registry
 from .base import (
     Metric,
     MetricAggregatable,
+    MetricAggregatableCache,
     MetricBase,
     MetricCacheable,
     MetricReferenceless,
@@ -28,6 +29,7 @@ __all__ = [
     "MetricBase",
     "Metric",
     "MetricAggregatable",
+    "MetricAggregatableCache",
     "MetricCacheable",
     "MetricReferenceless",
     "MetricBERTScore",

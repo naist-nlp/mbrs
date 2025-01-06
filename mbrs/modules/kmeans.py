@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from typing import Tuple
 
 import torch
@@ -10,11 +13,26 @@ class Kmeans:
     """k-means clustering implemented in PyTorch.
 
     Args:
-        kmeanspp (bool): Use k-means++ for centroid intialization.
+        cfg (Kmeans.Config): Configuration for k-means.
     """
 
-    def __init__(self, kmeanspp: bool = False) -> None:
-        self.kmeanspp = kmeanspp
+    @dataclass
+    class Config:
+        """Configuration for k-means.
+
+        - ncentroids (int): Number of centroids.
+        - niter (int): Number of k-means iteration
+        - kmeanspp (bool): Initialize the centroids using k-means++.
+        - seed (bool): Random seed.
+        """
+
+        ncentroids: int = 8
+        niter: int = 5
+        kmeanspp: bool = True
+        seed: int = 0
+
+    def __init__(self, cfg: Config) -> None:
+        self.cfg = cfg
 
     def assign(self, x: Tensor, centroids: Tensor) -> Tensor:
         """Assigns the nearest neighbor centroid ID.
@@ -51,47 +69,43 @@ class Kmeans:
             centroids = torch.cat([centroids, new_centroid])
         return centroids
 
-    def train(
-        self, x: Tensor, ncentroids: int, niter: int = 5, seed: int = 0
-    ) -> Tuple[Tensor, Tensor]:
+    def train(self, x: Tensor) -> Tuple[Tensor, Tensor]:
         """Trains k-means.
 
         Args:
             x (torch.Tensor): Input vectors of shape `(n, dim)`.
-            ncentroids (int): Number of centroids.
-            niter (int): Number of training iteration.
 
         Returns:
             Tensor: Centroids tensor of shape `(ncentroids, dim)`.
             Tensor: Assigend IDs of shape `(n,)`.
         """
-        if ncentroids == 1:
+        if self.cfg.ncentroids == 1:
             with timer.measure("kmeans/iteration"):
                 centroids = x.mean(dim=0, keepdim=True)
             return centroids, self.assign(x, centroids)
-        elif x.size(0) <= ncentroids:
+        elif x.size(0) <= self.cfg.ncentroids:
             return x, torch.arange(x.size(0), device=x.device)
 
         with timer.measure("kmeans/initialize"):
             rng = torch.Generator(x.device)
-            rng = rng.manual_seed(seed)
-            if self.kmeanspp:
-                centroids = self.init_kmeanspp(x, rng, ncentroids)
+            rng = rng.manual_seed(self.cfg.seed)
+            if self.cfg.kmeanspp:
+                centroids = self.init_kmeanspp(x, rng, self.cfg.ncentroids)
             else:
                 centroids = x[
                     torch.randperm(x.size(0), generator=rng, device=x.device)[
-                        :ncentroids
+                        : self.cfg.ncentroids
                     ]
                 ]
 
         assigns = x.new_full((x.size(0),), fill_value=-1)
-        for i in range(niter):
+        for i in range(self.cfg.niter):
             with timer.measure("kmeans/iteration"):
                 new_assigns = self.assign(x, centroids)
                 if torch.equal(new_assigns, assigns):
                     break
                 assigns = new_assigns
-                for k in range(ncentroids):
+                for k in range(self.cfg.ncentroids):
                     if (assigns == k).any():
                         centroids[k] = x[assigns == k].mean(dim=0)
         return centroids, assigns

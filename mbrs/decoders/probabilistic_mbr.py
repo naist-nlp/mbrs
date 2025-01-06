@@ -70,50 +70,22 @@ class DecoderProbabilisticMBR(DecoderMBR):
         pairwise_sample_indices = torch.randperm(H * R, generator=rng)[:num_ucalcs]
         hypothesis_sample_indices: list[int] = (pairwise_sample_indices // R).tolist()
         reference_sample_indices: list[int] = (pairwise_sample_indices % R).tolist()
-        hypothesis_samples = [hypotheses[i] for i in hypothesis_sample_indices]
-        reference_samples = [references[j] for j in reference_sample_indices]
 
-        # For COMET-22
+        # Algorithm 2 in the paper.
         if isinstance(self.metric, MetricCacheable):
-            hypothesis_sample_indices_set = set(hypothesis_sample_indices)
-            reference_sample_indices_set = set(reference_sample_indices)
-            hypothesis_samples_deduped = [
-                hypotheses[i] for i in hypothesis_sample_indices_set
-            ]
-            reference_samples_deduped = [
-                references[j] for j in reference_sample_indices_set
-            ]
             with timer.measure("encode/hypotheses"):
-                ir = self.metric.encode(hypothesis_samples_deduped)
-                hypotheses_ir = ir.new_zeros((H, self.metric.embed_dim))
-                references_ir = ir.new_zeros((R, self.metric.embed_dim))
-                hypotheses_ir[list(hypothesis_sample_indices_set)] = ir
-            with timer.measure("encode/references"):
-                if hypotheses == references:
-                    seen_indices = list(
-                        hypothesis_sample_indices_set & reference_sample_indices_set
-                    )
-                    unseen_indices = list(
-                        reference_sample_indices_set - hypothesis_sample_indices_set
-                    )
-                    if len(seen_indices) > 0:
-                        references_ir[seen_indices] = hypotheses_ir[seen_indices]
-                    if len(unseen_indices) > 0:
-                        references_ir[unseen_indices] = self.metric.encode(
-                            [references[j] for j in unseen_indices]
-                        )
-                else:
-                    references_ir[list(reference_sample_indices_set)] = (
-                        self.metric.encode(reference_samples_deduped)
-                    )
+                hypotheses_ir = self.metric.encode(hypotheses)
+            if hypotheses == references:
+                references_ir = hypotheses_ir
+            else:
+                with timer.measure("encode/references"):
+                    references_ir = self.metric.encode(references)
             if source is None:
                 source_ir = None
             else:
                 with timer.measure("encode/source"):
                     source_ir = self.metric.encode([source])
 
-        # Algorithm 2 in the paper.
-        if isinstance(self.metric, MetricCacheable):
             num_hyp_samples = len(hypothesis_sample_indices)
             for i in range(0, num_hyp_samples, H):
                 pairwise_scores[
@@ -122,11 +94,13 @@ class DecoderProbabilisticMBR(DecoderMBR):
                 ] = self.metric.scores_from_ir(
                     hypotheses_ir[hypothesis_sample_indices[i : i + H]],
                     references_ir[reference_sample_indices[i : i + H]],
-                    source_ir.repeat(min(H, num_hyp_samples - i), 1)
+                    source_ir.repeat(min(H, num_hyp_samples - i))
                     if source_ir is not None
                     else None,
                 ).float()
         else:
+            hypothesis_samples = [hypotheses[i] for i in hypothesis_sample_indices]
+            reference_samples = [references[j] for j in reference_sample_indices]
             pairwise_scores[hypothesis_sample_indices, reference_sample_indices] = (
                 self.metric.scores(
                     hypothesis_samples,

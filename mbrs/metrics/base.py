@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import abc
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence
 
 import torch
 from torch import Tensor
 
 from mbrs import functional, timer
+from mbrs.modules.kmeans import Kmeans
 
 
 class MetricBase(abc.ABC):
@@ -179,10 +180,35 @@ class MetricAggregatable(Metric, metaclass=abc.ABCMeta):
         """
 
 
-class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
+class MetricCacheable(Metric, metaclass=abc.ABCMeta):
     """Base class for cacheable metrics.
 
-    This class supports to cache intermediate representations of the encoder."""
+    This class supports to cache intermediate representations of sentences."""
+
+    @dataclass
+    class Cache(metaclass=abc.ABCMeta):
+        """Intermediate representations of sentences."""
+
+        @abc.abstractmethod
+        def __len__(self) -> int:
+            """Return the length of cache."""
+
+        @abc.abstractmethod
+        def __getitem__(
+            self, key: int | Sequence[int] | slice | Tensor
+        ) -> MetricCacheable.Cache:
+            """Get the items."""
+
+        @abc.abstractmethod
+        def repeat(self, n: int) -> MetricCacheable.Cache:
+            """Repeat the representations by n times.
+
+            Args:
+                n (int): The number of repetition.
+
+            Returns:
+                Cache: The repeated cache.
+            """
 
     @property
     @abc.abstractmethod
@@ -190,34 +216,57 @@ class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
         """Return the size of embedding dimension."""
 
     @abc.abstractmethod
-    def encode(self, sentences: list[str]) -> Tensor:
+    def encode(self, sentences: list[str]) -> Cache:
         """Encode the given sentences into their intermediate representations.
 
         Args:
             sentences (list[str]): Input sentences.
 
         Returns:
-            Tensor: Intermediate representations of shape `(N, D)` where `N` is the
-              number of hypotheses and `D` is a size of the embedding dimension.
+            MetricCacheable.Cache: Intermediate representations.
         """
 
     @abc.abstractmethod
     def out_proj(
         self,
-        hypotheses_ir: Tensor,
-        references_ir: Tensor,
-        sources_ir: Optional[Tensor] = None,
+        hypotheses_ir: Cache,
+        references_ir: Cache,
+        sources_ir: Optional[Cache] = None,
     ) -> Tensor:
         """Forward the output projection layer.
 
         Args:
-            hypotheses_ir (Tensor): Intermediate representations of hypotheses.
-            references_ir (Tensor): Intermediate representations of references.
-            sources_ir (Tensor, optional): Intermediate representations of sources.
+            hypotheses_ir (Cache): N intermediate representations of hypotheses.
+            references_ir (Cache): N intermediate representations of references.
+            sources_ir (Cache, optional): N intermediate representations of sources.
 
         Returns:
             Tensor: N scores.
         """
+
+    def scores_from_ir(
+        self,
+        hypotheses_ir: Cache,
+        references_ir: Cache,
+        sources_ir: Optional[Cache] = None,
+    ) -> Tensor:
+        """Calculate the scores of the given hypotheses from the intermediate representations.
+
+        Args:
+            hypotheses_ir (Cache): N hypotheses.
+            references_ir (Cache): N references.
+            sources_ir (Cache, optional): N sources.
+
+        Returns:
+            Tensor: The N scores of the given hypotheses.
+        """
+        H = len(hypotheses_ir)
+        with timer.measure("score") as t:
+            t.set_delta_ncalls(H)
+            if sources_ir is None:
+                return self.out_proj(hypotheses_ir, references_ir)
+            else:
+                return self.out_proj(hypotheses_ir, references_ir, sources_ir)
 
     def score(
         self,
@@ -235,35 +284,11 @@ class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
         Returns:
             float: The score of the given hypothesis.
         """
-        return self.out_proj(
-            self.encode([hypothesis]),
-            self.encode([reference]),
-            self.encode([source]) if source is not None else None,
+        return self.scores(
+            [hypothesis],
+            [reference],
+            [source] if source is not None else None,
         ).item()
-
-    def scores_from_ir(
-        self,
-        hypotheses_ir: Tensor,
-        references_ir: Tensor,
-        sources_ir: Optional[Tensor] = None,
-    ) -> Tensor:
-        """Calculate the scores of the given hypotheses from the intermediate representations.
-
-        Args:
-            hypotheses_ir (Tensor): N hypotheses.
-            references_ir (Tensor): N references.
-            sources_ir (Tensor, optional): N sources.
-
-        Returns:
-            Tensor: The N scores of the given hypotheses.
-        """
-        H = len(hypotheses_ir)
-        with timer.measure("score") as t:
-            t.set_delta_ncalls(H)
-            if sources_ir is None:
-                return self.out_proj(hypotheses_ir, references_ir)
-            else:
-                return self.out_proj(hypotheses_ir, references_ir, sources_ir)
 
     def scores(
         self,
@@ -290,33 +315,33 @@ class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
 
     def pairwise_scores_from_ir(
         self,
-        hypotheses_ir: Tensor,
-        references_ir: Tensor,
-        source_ir: Optional[Tensor] = None,
+        hypotheses_ir: Cache,
+        references_ir: Cache,
+        source_ir: Optional[Cache] = None,
     ) -> Tensor:
         """Calculate the pairwise scores from the intermediate representations.
 
         Args:
-            hypotheses_ir (Tensor): Hypotheses.
-            references_ir (Tensor): References.
-            source_ir (Tensor, optional): A source.
+            hypotheses_ir (Cache): Hypotheses.
+            references_ir (Cache): References.
+            source_ir (Cache, optional): A source.
 
         Returns:
             Tensor: Score matrix of shape `(H, R)`, where `H` is the number
               of hypotheses and `R` is the number of references.
         """
-        H, D = hypotheses_ir.size()
-        R, _ = references_ir.size()
+        H = len(hypotheses_ir)
+        R = len(references_ir)
         if source_ir is not None:
-            source_ir = source_ir.repeat(H, 1)
+            source_ir = source_ir.repeat(H)
 
         scores = []
         for i in range(R):
             with timer.measure("score") as t:
                 t.set_delta_ncalls(H)
                 scores.append(
-                    self.out_proj(
-                        hypotheses_ir, references_ir[i, :].repeat(H, 1), source_ir
+                    self.scores_from_ir(
+                        hypotheses_ir, references_ir[i].repeat(H), source_ir
                     )[:, None]
                 )
         return torch.cat(scores, dim=-1)
@@ -348,6 +373,47 @@ class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
             with timer.measure("encode/source"):
                 source_ir = self.encode([source])
         return self.pairwise_scores_from_ir(hypotheses_ir, references_ir, source_ir)
+
+
+class MetricAggregatableCache(
+    MetricAggregatable, MetricCacheable, metaclass=abc.ABCMeta
+):
+    """Base class for metrics that can aggregate the cache.
+
+    This class supports to aggregate intermediate representations of sentences."""
+
+    @dataclass
+    class Cache(MetricCacheable.Cache, metaclass=abc.ABCMeta):
+        """Intermediate representations of sentences."""
+
+        @abc.abstractmethod
+        def aggregate(
+            self, reference_lprobs: Optional[Tensor] = None
+        ) -> MetricAggregatableCache.Cache:
+            """Aggregate the cached representations.
+
+            Args:
+                reference_lprobs (Tensor, optional): Log-probabilities for each reference sample.
+                  The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
+
+            Returns:
+                Cache: An aggregated representation.
+            """
+
+        def cluster(
+            self, kmeans: Kmeans
+        ) -> tuple[MetricAggregatableCache.Cache, Tensor]:
+            """Cluster the cached representations.
+
+            Args:
+                kmeans (Kmeans): k-means class to perform clustering.
+
+            Returns:
+                tuple[Cache, Tensor]:
+                  - Cache: Centroid representations.
+                  - Tensor: N assigned IDs.
+            """
+            raise NotImplementedError(type(self).__name__)
 
     def expected_scores_reference_aggregation(
         self,
@@ -382,15 +448,7 @@ class MetricCacheable(MetricAggregatable, metaclass=abc.ABCMeta):
                 source_ir = self.encode([source])
 
         with timer.measure("aggregate/references"):
-            if reference_lprobs is not None:
-                aggregated_reference_ir = (
-                    references_ir
-                    * reference_lprobs.to(references_ir)
-                    .softmax(dim=-1, dtype=torch.float32)
-                    .to(references_ir)[:, None]
-                ).sum(dim=0, keepdim=True)
-            else:
-                aggregated_reference_ir = references_ir.mean(dim=0, keepdim=True)
+            aggregated_reference_ir = references_ir.aggregate(reference_lprobs)
 
         with timer.measure("expectation"):
             return self.pairwise_scores_from_ir(
