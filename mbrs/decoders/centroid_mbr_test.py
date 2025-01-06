@@ -3,6 +3,7 @@ import torch
 
 from mbrs.decoders.aggregate_mbr import DecoderAggregateMBR
 from mbrs.metrics.comet import MetricCOMET
+from mbrs.modules.kmeans import Kmeans
 from mbrs.selectors.base import Selector
 
 from .centroid_mbr import DecoderCentroidMBR
@@ -42,7 +43,9 @@ class TestDecoderCBMBR:
     @pytest.mark.parametrize("kmeanspp", [True, False])
     def test_decode(self, metric_comet: MetricCOMET, kmeanspp: bool):
         decoder = DecoderCentroidMBR(
-            DecoderCentroidMBR.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp),
+            DecoderCentroidMBR.Config(
+                Kmeans.Config(ncentroids=NCENTROIDS, kmeanspp=kmeanspp)
+            ),
             metric_comet,
         )
         for i, (hyps, refs) in enumerate(zip(HYPOTHESES, REFERENCES)):
@@ -76,7 +79,7 @@ class TestDecoderCBMBR:
         self, metric_comet: MetricCOMET, nbest: int, kmeanspp: bool, selector: Selector
     ):
         decoder_cbmbr = DecoderCentroidMBR(
-            DecoderCentroidMBR.Config(ncentroids=1, kmeanspp=kmeanspp),
+            DecoderCentroidMBR.Config(Kmeans.Config(ncentroids=1, kmeanspp=kmeanspp)),
             metric_comet,
             selector=selector,
         )
@@ -102,7 +105,7 @@ class TestDecoderCBMBR:
         self, metric_comet: MetricCOMET, nbest: int, selector: Selector
     ):
         decoder = DecoderCentroidMBR(
-            DecoderCentroidMBR.Config(ncentroids=NCENTROIDS),
+            DecoderCentroidMBR.Config(Kmeans.Config(ncentroids=NCENTROIDS)),
             metric_comet,
             selector=selector,
         )

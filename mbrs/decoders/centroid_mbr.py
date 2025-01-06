@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Optional
 
 import torch
 from torch import Tensor
 
 from mbrs import functional, timer
-from mbrs.metrics import MetricCacheable
+from mbrs.metrics import MetricAggregatableCache
 from mbrs.modules.kmeans import Kmeans
 from mbrs.selectors import Selector, SelectorNbest
 
@@ -27,17 +27,17 @@ class DecoderCentroidMBR(DecoderMBR):
     References:
         H. Deguchi et al., 2024.
         "Centroid-Based Efficient Minimum Bayes Risk Decoding".
-        https://arxiv.org/abs/2402.11197
+        https://aclanthology.org/2024.findings-acl.654
     """
 
     def __init__(
         self,
         cfg: DecoderCentroidMBR.Config,
-        metric: MetricCacheable,
+        metric: MetricAggregatableCache,
         selector: Selector = SelectorNbest(SelectorNbest.Config()),
     ) -> None:
         super().__init__(cfg, metric, selector=selector)
-        self.kmeans = Kmeans(kmeanspp=self.cfg.kmeanspp)
+        self.kmeans = Kmeans(cfg.kmeans)
 
     cfg: Config
 
@@ -45,18 +45,12 @@ class DecoderCentroidMBR(DecoderMBR):
     class Config(DecoderMBR.Config):
         """Configuration for the decoder.
 
-        - ncentroids (int): Number of centroids.
-        - niter (int): Number of k-means iteration
+        - kmeans (Kmeans.Config): Configuration for k-means.
         - count_weight: (bool) Weight the scores with counts.
-        - kmeanspp (bool): Initialize the centroids using k-means++.
-        - seed (bool): Random seed.
         """
 
-        ncentroids: int = 8
-        niter: int = 3
+        kmeans: Kmeans.Config = field(default_factory=Kmeans.Config)
         count_weight: bool = False
-        kmeanspp: bool = True
-        seed: int = 0
 
     def decode(
         self,
@@ -77,28 +71,25 @@ class DecoderCentroidMBR(DecoderMBR):
               The shape must be `(len(references),)`. See `https://arxiv.org/abs/2311.05263`.
 
         Returns:
-            DecoderCBMBR.Output: The n-best hypotheses.
+            DecoderCentroidMBR.Output: The n-best hypotheses.
         """
-        assert isinstance(self.metric, MetricCacheable)
+        assert isinstance(self.metric, MetricAggregatableCache)
 
         with timer.measure("encode/hypotheses"):
             hypotheses_ir = self.metric.encode(hypotheses)
         if hypotheses == references:
-            references_ir = hypotheses_ir
+            references_ir: MetricAggregatableCache.Cache = hypotheses_ir
         else:
             with timer.measure("encode/references"):
-                references_ir = self.metric.encode(references)
+                references_ir: MetricAggregatableCache.Cache = self.metric.encode(
+                    references
+                )
         if source is None:
             source_ir = None
         else:
             with timer.measure("encode/source"):
                 source_ir = self.metric.encode([source])
-        centroids, assigns = self.kmeans.train(
-            references_ir,
-            min(self.cfg.ncentroids, len(references)),
-            niter=self.cfg.niter,
-            seed=self.cfg.seed,
-        )
+        centroids, assigns = references_ir.cluster(self.kmeans)
 
         lprobs = None
         if self.cfg.count_weight:
@@ -107,24 +98,25 @@ class DecoderCentroidMBR(DecoderMBR):
             counts[centroid_ids] = counts_nonzero
             lprobs = counts.log()
         elif reference_lprobs is not None:
-            reference_lprobs = reference_lprobs.to(centroids)
-
             # Accumurate the log-probabilities for each centroid by logsumexp.
             lprobs = (
-                centroids.new_zeros(len(centroids), dtype=torch.float32)
+                torch.zeros(len(centroids), dtype=torch.float32, device=assigns.device)
                 .scatter_add(
                     dim=-1,
                     index=assigns.unique(),
-                    src=reference_lprobs.softmax(dim=-1, dtype=torch.float32),
+                    src=reference_lprobs.to(assigns.device).softmax(
+                        dim=-1, dtype=torch.float32
+                    ),
                 )
                 .log()
-                .to(centroids)
             )
 
         with timer.measure("expectation"):
             pairwise_scores = self.metric.pairwise_scores_from_ir(
                 hypotheses_ir, centroids, source_ir
             )
+            if lprobs is not None:
+                lprobs = lprobs.to(pairwise_scores)
             expected_scores = functional.expectation(pairwise_scores, lprobs=lprobs)
 
         selector_outputs = self.select(
