@@ -69,6 +69,12 @@ def get_argparser() -> ArgumentParser:
                         help="Sampling size in a single inference. "
                         "The model generates this number of samples at a time "
                         "until the total number of samples reaches `--num_candidates`.")
+    parser.add_argument("--unique", action="store_true",
+                        help="Generate unique sentences for each input.")
+    parser.add_argument("--retry", type=int, default=100,
+                        help="Retry to do sampling N times when generate unique sentences. "
+                        "If no unique sentences are found after this number of attempts, "
+                        "non-unique sentences will be included in outputs. ")
     parser.add_argument("--fp16", action="store_true",
                         help="Use float16.")
     parser.add_argument("--bf16", action="store_true",
@@ -324,12 +330,48 @@ def main(args: Namespace) -> None:
             or generation_kwargs.get("num_beams", 1) != 1
         ):
             yield from decode(inputs, args.num_candidates, generation_kwargs)
+        elif args.unique:
+            num_inputs = len(inputs)
+            samples: list[list[Sample]] = [[] for _ in range(num_inputs)]
+            seen: list[set[str]] = [set() for _ in range(num_inputs)]
+            finished: list[bool] = [False] * num_inputs
+            batch_indices: list[int] = list(range(num_inputs))
+            sampling_size: int = args.sampling_size
+            num_retry = 0
+            while not all(finished) :
+                shards = decode(inputs, sampling_size, generation_kwargs)
+                num_retry += 1
+                new_batch_indices: list[int] = []
+                new_inputs: list[str] = []
+                for i, batch_idx in enumerate(batch_indices):
+                    for sample in shards[i * sampling_size : (i + 1) * sampling_size]:
+                        if num_retry < args.retry:
+                            if sample.text in seen[batch_idx]:
+                                continue
+                            else:
+                                seen[batch_idx].add(sample.text)
+                                samples[batch_idx].append(sample)
+                            if len(seen[batch_idx]) >= args.num_candidates:
+                                finished[batch_idx] = True
+                                break
+                        else:
+                            samples[batch_idx].append(sample)
+                            if len(samples[batch_idx]) >= args.num_candidates:
+                                finished[batch_idx] = True
+                                break
+                    else:
+                        new_batch_indices.append(batch_idx)
+                        new_inputs.append(inputs[i])
+                batch_indices = new_batch_indices
+                inputs = new_inputs
+            yield from chain.from_iterable(samples)
         else:
-            samples: list[list[Sample]] = [[] for _ in range(args.batch_size)]
+            num_inputs = len(inputs)
+            samples: list[list[Sample]] = [[] for _ in range(num_inputs)]
             for n in range(0, args.num_candidates, args.sampling_size):
                 sampling_size = min(args.sampling_size, args.num_candidates - n)
                 shards = decode(inputs, sampling_size, generation_kwargs)
-                for i in range(args.batch_size):
+                for i in range(num_inputs):
                     samples[i] += shards[i * sampling_size : (i + 1) * sampling_size]
             yield from chain.from_iterable(samples)
 
