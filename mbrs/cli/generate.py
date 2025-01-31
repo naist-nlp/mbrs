@@ -279,7 +279,10 @@ def main(args: Namespace) -> None:
         )
         with timer.measure("generate"):
             model_outputs: GenerateOutput = model.generate(
-                **model_inputs, **generation_kwargs, num_return_sequences=num_candidates
+                **model_inputs,
+                **generation_kwargs,
+                num_return_sequences=num_candidates,
+                renormalize_logits=True,
             )
 
         if model_outputs.scores is None:
@@ -292,17 +295,14 @@ def main(args: Namespace) -> None:
 
         sequences = model_outputs.sequences
         scores = model_outputs.scores
+
         max_length = len(scores)
         if hasattr(tokenizer, "pad_token_id"):
             pad_token_id = tokenizer.pad_token_id
             for s in scores:
-                s[:, pad_token_id] = float("-inf")
-            scores = tuple(s.log_softmax(dim=1) for s in scores)
-            for s in scores:
                 s[:, pad_token_id] = 0.0
             sequence_lengths = max_length - (sequences.eq(pad_token_id)).sum(dim=-1)
         else:
-            scores = tuple(s.log_softmax(dim=1) for s in scores)
             sequence_lengths = torch.full(
                 (sequences.size(0),), fill_value=max_length, device=sequences.device
             )
@@ -312,6 +312,7 @@ def main(args: Namespace) -> None:
             sequences,
             scores,
             beam_indices=model_outputs.get("beam_indices", None),
+            normalize_logits=False,  # Because they are already normalized.
         )
         lprobs = transition_scores.sum(dim=-1)
         length_normalized_lprobs = lprobs / (sequence_lengths**length_penalty)
@@ -338,7 +339,7 @@ def main(args: Namespace) -> None:
             batch_indices: list[int] = list(range(num_inputs))
             sampling_size: int = args.sampling_size
             num_retry = 0
-            while not all(finished) :
+            while not all(finished):
                 shards = decode(inputs, sampling_size, generation_kwargs)
                 num_retry += 1
                 new_batch_indices: list[int] = []
