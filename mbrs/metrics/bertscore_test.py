@@ -44,7 +44,7 @@ RECALL_SCORES = torch.Tensor(
 class TestMetricBERTScore:
     @pytest.fixture(scope="class")
     def metric_bertscore(self):
-        return MetricBERTScore(MetricBERTScore.Config(lang="en"))
+        return MetricBERTScore(MetricBERTScore.Config(lang="en", batch_size=8))
 
     def test_score(self, metric_bertscore: MetricBERTScore):
         for i, hyp in enumerate(HYPOTHESES):
@@ -108,6 +108,13 @@ class TestMetricBERTScore:
                 [0.9999998807907104, 0.9457088112831116, 0.949202835559845]
             ).mean(),
         )
+
+    def test_encode_batch(self, metric_bertscore: MetricBERTScore):
+        N = metric_bertscore.cfg.batch_size + 2
+        hyps = ["this is a test"] * N
+        cache = metric_bertscore.encode(hyps)
+        assert len(cache.embeddings) == N
+        assert len(cache.idf_weights) == N
 
 
 @pytest.mark.metrics_bertscore
