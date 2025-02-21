@@ -260,7 +260,7 @@ class MetricBERTScore(MetricCacheable):
             batch = self._collate(sequences[i : i + self.cfg.batch_size])
             attention_mask = batch.attention_mask.bool()
             embs = self.model(**batch.to(self.device))[0].cpu()
-            for j in range(i, i + len(embs)):
+            for j in range(len(embs)):
                 embeddings.append(embs[j, attention_mask[j]])
         idf_weights = [
             torch.Tensor([self.idf_dict.get(token, 1.0) for token in seq])

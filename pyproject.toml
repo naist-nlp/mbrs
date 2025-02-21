@@ -1,6 +1,6 @@
 [project]
 name = "mbrs"
-version = "0.1.5"
+version = "0.1.6"
 description = "A library for minimum Bayes risk (MBR) decoding."
 readme = "README.md"
 authors = [
