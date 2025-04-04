@@ -37,10 +37,6 @@ from mbrs.metrics import Metric, MetricEnum, get_metric
 from mbrs.selectors import Selector, get_selector
 
 
-simple_parsing.parsing.logger.setLevel(logging.ERROR)
-dataclass_wrapper.logger.setLevel(logging.ERROR)
-
-
 class Format(enum.Enum):
     plain = "plain"
     json = "json"
