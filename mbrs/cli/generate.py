@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
-from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser, FileType, Namespace
+import sys
+from argparse import FileType
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any, Generator, Iterable, Optional
+from typing import Any, Generator, Iterable, Optional, Sequence
 
 import torch
+from simple_parsing import choice, field, flag
 from tabulate import tabulate, tabulate_formats
 from tqdm import tqdm
 from transformers import (
@@ -17,6 +19,7 @@ from transformers import (
 from transformers.generation.utils import GenerateOutput, GenerationMixin
 
 from mbrs import timer
+from mbrs.args import ArgumentParser
 
 
 def buffer_lines(input_stream: Iterable[str], buffer_size: int = 64):
@@ -30,69 +33,79 @@ def buffer_lines(input_stream: Iterable[str], buffer_size: int = 64):
         yield buf
 
 
-def get_argparser() -> ArgumentParser:
-    parser = ArgumentParser(formatter_class=ArgumentDefaultsHelpFormatter)
-    # fmt: off
-    parser.add_argument("input", nargs="?", default="-",
-                        type=FileType("r", encoding="utf-8"),
-                        help="Input file. If not specified, read from stdin.")
-    parser.add_argument("--output", "-o", default="-", type=FileType("w"),
-                        help="Output file.")
-    parser.add_argument("--lprobs", default=None, type=FileType("w"),
-                        help="Reference log-probabilities file. "
-                        "This option is useful for the model-based estimation.")
-    parser.add_argument("--length_normalized_lprobs", default=None, type=FileType("w"),
-                        help="Length-normalized reference log-probabilities file. "
-                        "This option is useful for the model-based estimation.")
-    parser.add_argument("--model", "-m", type=str, default="facebook/m2m100_418M",
-                        help="Model name or path.")
-    parser.add_argument("--num_candidates", "-n", type=int, default=1,
-                        help="Number of candidates to be returned.")
-    parser.add_argument("--sampling", "-s", type=str, default="",
-                        choices=["eps"],
-                        help="Sampling method.")
-    parser.add_argument("--beam_size", type=int, default=5,
-                        help="Beam size.")
-    parser.add_argument("--epsilon", "--eps", "-e", type=float, default=0.02,
-                        help="Cutoff parameter for epsilon sampling.")
-    parser.add_argument("--lang_pair", "-l", type=str, default="en-de",
-                        help="Language name pair. Some models like M2M100 uses this information.")
-    parser.add_argument("--max_length", type=int, default=1024,
-                        help="Maximum length of an output sentence.")
-    parser.add_argument("--min_length", type=int, default=1,
-                        help="Minimum length of an output sentence.")
-    parser.add_argument("--length_penalty", type=float, default=None,
-                        help="Length penalty.")
-    parser.add_argument("--batch_size", "-b", type=int, default=8,
-                        help="Batch size.")
-    parser.add_argument("--sampling_size", type=int, default=8,
-                        help="Sampling size in a single inference. "
-                        "The model generates this number of samples at a time "
-                        "until the total number of samples reaches `--num_candidates`.")
-    parser.add_argument("--unique", action="store_true",
-                        help="Generate unique sentences for each input.")
-    parser.add_argument("--retry", type=int, default=100,
-                        help="Retry to do sampling N times when generate unique sentences. "
-                        "If no unique sentences are found after this number of attempts, "
-                        "non-unique sentences will be included in outputs. ")
-    parser.add_argument("--fp16", action="store_true",
-                        help="Use float16.")
-    parser.add_argument("--bf16", action="store_true",
-                        help="Use bfloat16.")
-    parser.add_argument("--cpu", action="store_true",
-                        help="Force to use CPU.")
-    parser.add_argument("--seed", type=int, default=0,
-                        help="Random number seed.")
-    parser.add_argument("--quiet", "-q", action="store_true",
-                        help="No report statistics.")
-    parser.add_argument("--report", default="-", type=FileType("w"),
-                        help="Report file.")
-    parser.add_argument("--report_format", type=str, default="rounded_outline",
-                        choices=tabulate_formats,
-                        help="Report runtime statistics.")
-    parser.add_argument("--width", "-w", type=int, default=1,
-                        help="Number of digits for values of float point.")
-    # fmt: on
+@dataclass
+class GenerationArguments:
+    """Generation arguments."""
+
+    # Input file. If not specified, read from stdin.
+    input: FileType("r", encoding="utf-8") = field(
+        default="-", nargs="?", positional=True
+    )
+    # Output file.
+    output: FileType("w") = field(default="-", alias=["-o"])
+    # Reference log-probabilities file.
+    # This option is typically used for the model-based estimation.
+    lprobs: FileType("w") = field(default=None)
+    # Length-normalized reference log-probabilities file.
+    # This option is typically used for the model-based estimation.
+    length_normalized_lprobs: FileType("w") = field(default=None)
+    # Model name or path.
+    model: str = field(default="facebook/m2m100_418M", alias=["-m"])
+    # Number of candidates to be returned.
+    num_candidates: int = field(default=1, alias=["-n"])
+    # Sampling method.
+    sampling: str = field(default="", alias=["-s"], metadata={"choices": ["", "eps"]})
+    # Beam size.
+    beam_size: int = field(default=5)
+    # Cutoff parameter for epsilon sampling.
+    epsilon: float = field(default=0.02, alias=["--eps", "-e"])
+    # Language code pair. Some models like M2M100 uses this information.
+    lang_pair: str = field(default="en-de")
+    # Maximum length of an output sentence.
+    max_length: int = field(default=1024)
+    # Minimum length of an output sentence.
+    min_length: int = field(default=1)
+    # Length penalty.
+    length_penalty: float | None = field(default=None)
+    # Batch size.
+    batch_size: int = field(default=1)
+    # Sampling size in a single inference.
+    # The model generates this number of samples at a time
+    # until the total number of samples reaches `--num_candidates`.
+    sampling_size: int = field(default=8)
+    # Generate unique sentences for each input.
+    unique: bool = field(default=False)
+    # Retry to do sampling N times when generate unique sentences.
+    # If no unique sentences are found after this number of attempts,
+    # non-unique sentences will be included in outputs.
+    retry: int = field(default=100)
+    # Use float16.
+    fp16: bool = flag(default=False)
+    # Use bfloat16.
+    bf16: bool = flag(default=False)
+    # Force to use CPU.
+    cpu: bool = flag(default=False)
+    # Random number seed.
+    seed: int = field(default=0)
+    # No report statistics..
+    quiet: bool = flag(default=False, alias=["-q"])
+    # Report file.
+    report: FileType("w") = field(default="-")
+    # Report runtime statistics with the given format.
+    report_format: str = choice(*tabulate_formats, default="rounded_outline")
+    # Number of digits for values of float point.
+    width: int = field(default=1, alias=["-w"])
+
+
+def get_argparser(args: Sequence[str] | None = None) -> ArgumentParser:
+    parser = ArgumentParser(add_help=True, add_config_path_arg=True)
+    parser.add_arguments(GenerationArguments, "generation")
+    return parser
+
+
+def format_argparser() -> ArgumentParser:
+    parser = get_argparser()
+    parser.parse_known_args_preprocess(sys.argv[1:] + ["--help"])
     return parser
 
 
@@ -229,7 +242,7 @@ def memory_efficient_compute_transition_scores(
     return transition_scores
 
 
-def main(args: Namespace) -> None:
+def main(args: GenerationArguments) -> None:
     set_seed(args.seed)
 
     src_lang, tgt_lang = tuple(args.lang_pair.split("-"))
@@ -246,7 +259,7 @@ def main(args: Namespace) -> None:
             model.bfloat16()
         model.cuda()
 
-    generation_kwargs = {
+    generation_kwargs: dict[str, str | bool | int | float] = {
         "max_length": args.max_length,
         "min_length": args.min_length,
         "return_dict_in_generate": True,
@@ -338,7 +351,7 @@ def main(args: Namespace) -> None:
             batch_indices: list[int] = list(range(num_inputs))
             sampling_size: int = args.sampling_size
             num_retry = 0
-            while not all(finished) :
+            while not all(finished):
                 shards = decode(inputs, sampling_size, generation_kwargs)
                 num_retry += 1
                 new_batch_indices: list[int] = []
@@ -404,7 +417,7 @@ def main(args: Namespace) -> None:
 
 def cli_main():
     args = get_argparser().parse_args()
-    main(args)
+    main(args.generation)
 
 
 if __name__ == "__main__":

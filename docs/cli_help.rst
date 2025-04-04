@@ -6,7 +6,7 @@ mbrs-generate
 
 .. argparse::
     :module: mbrs.cli.generate
-    :func: get_argparser
+    :func: format_argparser
     :prog: mbrs-generate
 
 mbrs-decode
