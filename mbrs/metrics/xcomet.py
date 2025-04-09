@@ -126,12 +126,11 @@ class XCOMETLiteMetric(XCOMETMetric, PyTorchModelHubMixin):
             encoder_model=encoder_model,
             pretrained_model=pretrained_model,
             word_layer=word_layer,
+            layer_transformation="softmax",
             validation_data=validation_data,
             word_level_training=word_level_training,
             hidden_sizes=hidden_sizes,
             load_pretrained_weights=load_pretrained_weights,
-            *args,
-            **kwargs,
         )
 
 
