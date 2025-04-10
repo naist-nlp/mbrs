@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import itertools
 from dataclasses import dataclass
+from typing import Optional
 
 import torch
 import transformers
@@ -196,25 +197,29 @@ class MetricBLEURT(Metric):
         return torch.cat(scores).view(len(references), len(hypotheses)).transpose(0, 1)
 
     def corpus_score(
-        self, hypotheses: list[str], references: list[str], *_, **__
+        self, hypotheses: list[str],
+        references_lists: list[list[str]],
+        sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
+            references_lists (list[list[str]]): Lists of references.
+            sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
         scores = []
-        for i in range(0, len(hypotheses), self.cfg.batch_size):
-            scores.append(
-                self.scores(
-                    hypotheses[i : i + self.cfg.batch_size],
-                    references[i : i + self.cfg.batch_size],
+        for references in references_lists:
+            for i in range(0, len(hypotheses), self.cfg.batch_size):
+                scores.append(
+                    self.scores(
+                        hypotheses[i : i + self.cfg.batch_size],
+                        references[i : i + self.cfg.batch_size],
+                    )
+                    .float()
+                    .cpu()
                 )
-                .float()
-                .cpu()
-            )
         return torch.cat(scores).mean().item()

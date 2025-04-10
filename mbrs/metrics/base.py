@@ -127,30 +127,25 @@ class Metric(MetricBase, metaclass=abc.ABCMeta):
     def corpus_score(
         self,
         hypotheses: list[str],
-        references: list[str],
+        references_lists: list[list[str]],
         sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
+            references_lists (list[list[str]]): Lists of references.
             sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
-        if sources is None:
-            return sum(
-                [self.score(hyp, ref) for hyp, ref in zip(hypotheses, references)]
-            ) / len(hypotheses)
-        else:
-            return sum(
-                [
-                    self.score(hyp, ref, src)
-                    for hyp, ref, src in zip(hypotheses, references, sources)
-                ]
-            ) / len(hypotheses)
+        return sum(
+            [
+                self.scores(hypotheses, references, sources).sum().item()
+                for references in references_lists
+            ]
+        ) / (len(hypotheses) * len(references_lists))
 
 
 class MetricAggregatable(Metric, metaclass=abc.ABCMeta):
@@ -493,6 +488,4 @@ class MetricReferenceless(MetricBase, metaclass=abc.ABCMeta):
         Returns:
             float: The corpus score.
         """
-        return sum(self.scores(hypotheses, sources=sources).cpu().float().item()) / len(
-            hypotheses
-        )
+        return self.scores(hypotheses, sources=sources).mean().cpu().float().item()

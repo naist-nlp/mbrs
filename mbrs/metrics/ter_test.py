@@ -90,5 +90,5 @@ class TestMetricTER:
 
         metric = MetricTER(MetricTER.Config())
         assert torch.isclose(
-            torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(66.66667)
+            torch.tensor(metric.corpus_score(hyps, [refs])), torch.tensor(66.66667)
         )

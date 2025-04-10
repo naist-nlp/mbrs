@@ -86,7 +86,7 @@ class TestMetricXCOMET:
         refs = ["another test", "this is a fest", "this is a test"]
         srcs = [SOURCE] * len(hyps)
         assert torch.isclose(
-            torch.tensor(metric_xcomet.corpus_score(hyps, refs, srcs)),
+            torch.tensor(metric_xcomet.corpus_score(hyps, [refs], srcs)),
             torch.tensor(0.96848),
         )
         assert torch.isclose(
@@ -94,7 +94,7 @@ class TestMetricXCOMET:
             torch.tensor(0.99120),
         )
         assert torch.isclose(
-            torch.tensor(metric_xcomet.corpus_score(hyps, references=refs)),
+            torch.tensor(metric_xcomet.corpus_score(hyps, references_lists=[refs])),
             torch.tensor(0.92473),
         )
 
@@ -154,7 +154,7 @@ class TestMetricXCOMETLite:
         refs = ["another test", "this is a fest", "this is a test"]
         srcs = [SOURCE] * len(hyps)
         assert torch.isclose(
-            torch.tensor(metric_xcometlite.corpus_score(hyps, refs, srcs)),
+            torch.tensor(metric_xcometlite.corpus_score(hyps, [refs], srcs)),
             torch.tensor(0.81435),
         )
         assert torch.isclose(
@@ -162,6 +162,6 @@ class TestMetricXCOMETLite:
             torch.tensor(0.87564),
         )
         assert torch.isclose(
-            torch.tensor(metric_xcometlite.corpus_score(hyps, references=refs)),
+            torch.tensor(metric_xcometlite.corpus_score(hyps, references_lists=[refs])),
             torch.tensor(0.75123),
         )

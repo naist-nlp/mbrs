@@ -4,6 +4,7 @@ import concurrent.futures
 import itertools
 import math
 from dataclasses import dataclass
+from typing import Optional
 
 from sacrebleu.metrics.ter import TER
 from torch import Tensor
@@ -125,15 +126,19 @@ class MetricTER(Metric):
                 ).view(len(hypotheses), len(references))
 
     def corpus_score(
-        self, hypotheses: list[str], references: list[str], *_, **__
+        self,
+        hypotheses: list[str],
+        references_lists: list[list[str]],
+        sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
+            references_lists (list[list[str]]): Lists of references.
+            sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
-        return self.scorer.corpus_score(hypotheses, [references]).score
+        return self.scorer.corpus_score(hypotheses, references_lists).score

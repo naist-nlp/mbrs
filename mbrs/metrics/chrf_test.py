@@ -102,7 +102,7 @@ class TestMetricChrF:
 
         metric = MetricChrF(MetricChrF.Config())
         assert torch.isclose(
-            torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(53.90979)
+            torch.tensor(metric.corpus_score(hyps, [refs])), torch.tensor(53.90979)
         )
 
     @pytest.mark.parametrize("fastchrf", [False, True])

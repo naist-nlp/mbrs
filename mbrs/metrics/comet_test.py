@@ -58,7 +58,7 @@ class TestMetricCOMET:
             "producţia de zahăr brut se exprimă în zahăr alb;",
         ]
         assert torch.isclose(
-            torch.tensor(metric_comet.corpus_score(hyps, refs, [SOURCE] * len(hyps))),
+            torch.tensor(metric_comet.corpus_score(hyps, [refs], [SOURCE] * len(hyps))),
             torch.tensor(0.77979),
         )
 

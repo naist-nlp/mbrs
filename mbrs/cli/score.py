@@ -25,9 +25,6 @@ from mbrs import registry
 from mbrs.args import ArgumentParser
 from mbrs.metrics import Metric, MetricReferenceless, get_metric
 
-simple_parsing.parsing.logger.setLevel(logging.ERROR)
-dataclass_wrapper.logger.setLevel(logging.ERROR)
-
 
 class Format(enum.Enum):
     plain = "plain"
@@ -43,7 +40,7 @@ class CommonArguments:
     # Sources file.
     sources: str | None = field(default=None, alias=["-s"])
     # References file.
-    references: str | None = field(default=None, alias=["-r"])
+    references: str | None = field(default=None, alias=["-r"], nargs="+")
     # Output format.
     format: Format = choice(Format, default=Format.json)
     # Type of the metric.
@@ -88,11 +85,14 @@ def main(args: Namespace) -> None:
             sources = f.readlines()
         assert num_sents == len(sources)
 
-    references = None
+    references_lists: list[list[str]] | None = None
     if args.common.references is not None:
-        with open(args.common.references, mode="r") as f:
-            references = f.readlines()
-        assert num_sents == len(references)
+        references_lists = []
+        for references_path in args.common.references:
+            with open(references_path, mode="r") as f:
+                references = f.readlines()
+            assert num_sents == len(references)
+            references_lists.append(references)
 
     metric: Metric | MetricReferenceless = get_metric(args.common.metric)(args.metric)
 
@@ -100,8 +100,8 @@ def main(args: Namespace) -> None:
         assert sources is not None
         corpus_score = metric.corpus_score(hypotheses, sources=sources)
     else:
-        assert references is not None
-        corpus_score = metric.corpus_score(hypotheses, references, sources)
+        assert references_lists is not None
+        corpus_score = metric.corpus_score(hypotheses, references_lists, sources)
 
     score = {
         "name": args.common.metric,

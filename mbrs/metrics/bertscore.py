@@ -370,15 +370,22 @@ class MetricBERTScore(MetricCacheable):
         return super().pairwise_scores(hypotheses, references)
 
     def corpus_score(
-        self, hypotheses: list[str], references: list[str], *_, **__
+        self,
+        hypotheses: list[str],
+        references_lists: list[list[str]],
+        sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
+            references_lists (list[list[str]]): Lists of references.
+            sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
-        return self.scores(hypotheses, references).mean().item()
+        scores: list[Tensor] = []
+        for references in references_lists:
+            scores.append(self.scores(hypotheses, references).cpu().float())
+        return torch.cat(scores).mean().item()

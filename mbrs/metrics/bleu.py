@@ -172,18 +172,22 @@ class MetricBLEU(MetricAggregatable):
                 ).view(len(hypotheses), len(references))
 
     def corpus_score(
-        self, hypotheses: list[str], references: list[str], *_, **__
+        self,
+        hypotheses: list[str],
+        references_lists: list[list[str]],
+        sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
+            references_lists (list[list[str]]): Lists of references.
+            sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
-        return self.scorer.corpus_score(hypotheses, [references]).score
+        return self.scorer.corpus_score(hypotheses, references_lists).score
 
     @staticmethod
     def _compute_bleu(
@@ -222,9 +226,9 @@ class MetricBLEU(MetricAggregatable):
         Returns:
             float: A BLEU score.
         """
-        assert (
-            smooth_method in BLEU.SMOOTH_DEFAULTS.keys()
-        ), "Unknown smooth_method {smooth_method!r}"
+        assert smooth_method in BLEU.SMOOTH_DEFAULTS.keys(), (
+            "Unknown smooth_method {smooth_method!r}"
+        )
 
         # Fetch the default value for floor and add-k
         if smooth_value is None:
