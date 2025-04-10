@@ -284,32 +284,48 @@ class MetricXCOMET(Metric):
     def corpus_score(
         self,
         hypotheses: list[str],
-        references: Optional[list[str]] = None,
+        references_lists: Optional[list[list[str]]] = None,
         sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str], optional): References.
+            references_lists (list[list[str]], optional): Lists of references.
             sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
         """
-        scores = []
-        for i in range(0, len(hypotheses), self.cfg.batch_size):
-            scores.append(
-                self.scores(
-                    hypotheses[i : i + self.cfg.batch_size],
-                    references[i : i + self.cfg.batch_size]
-                    if references is not None
-                    else None,
-                    sources[i : i + self.cfg.batch_size]
-                    if sources is not None
-                    else None,
+        scores: list[Tensor] = []
+        if references_lists is None:
+            if sources is None:
+                raise ValueError(
+                    "`sources` must be given when `references_lists` is None."
                 )
-                .float()
-                .cpu()
-            )
+
+            for i in range(0, len(hypotheses), self.cfg.batch_size):
+                scores.append(
+                    self.scores(
+                        hypotheses[i : i + self.cfg.batch_size],
+                        None,
+                        sources[i : i + self.cfg.batch_size],
+                    )
+                    .float()
+                    .cpu()
+                )
+        else:
+            for references in references_lists:
+                for i in range(0, len(hypotheses), self.cfg.batch_size):
+                    scores.append(
+                        self.scores(
+                            hypotheses[i : i + self.cfg.batch_size],
+                            references[i : i + self.cfg.batch_size],
+                            sources[i : i + self.cfg.batch_size]
+                            if sources is not None
+                            else None,
+                        )
+                        .float()
+                        .cpu()
+                    )
         return torch.cat(scores).mean().item()

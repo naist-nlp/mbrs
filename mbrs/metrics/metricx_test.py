@@ -108,7 +108,7 @@ class TestMetricMetricX24:
         # Reference-based
         ref_scores = [0.23774, 5.31166, 0.10797]
         assert torch.isclose(
-            torch.tensor(metric_metricx.corpus_score(hyps, refs, srcs)),
+            torch.tensor(metric_metricx.corpus_score(hyps, [refs], srcs)),
             torch.tensor(ref_scores).mean(),
         )
         # Reference-free
@@ -199,7 +199,7 @@ class TestMetricMetricX23:
         # Reference-based
         ref_scores = [0.21216, 5.95098, 0.33338]
         assert torch.isclose(
-            torch.tensor(metric_metricx.corpus_score(hyps, refs, srcs)),
+            torch.tensor(metric_metricx.corpus_score(hyps, [refs], srcs)),
             torch.tensor(ref_scores).mean(),
         )
 

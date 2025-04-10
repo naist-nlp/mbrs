@@ -119,7 +119,7 @@ class TestMetricBLEU:
 
         metric = MetricBLEU(MetricBLEU.Config())
         assert torch.isclose(
-            torch.tensor(metric.corpus_score(hyps, refs)), torch.tensor(22.41424)
+            torch.tensor(metric.corpus_score(hyps, [refs])), torch.tensor(22.41424)
         )
 
     @pytest.mark.parametrize("effective_order", [True, False])

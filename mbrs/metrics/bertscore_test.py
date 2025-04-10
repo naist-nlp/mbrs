@@ -103,7 +103,7 @@ class TestMetricBERTScore:
         hyps = ["another test", "this is a test", "this is an test"]
         refs = ["another test", "this is a fest", "this is a test"]
         assert torch.isclose(
-            torch.tensor(metric_bertscore.corpus_score(hyps, refs)),
+            torch.tensor(metric_bertscore.corpus_score(hyps, [refs])),
             torch.FloatTensor(
                 [0.9999998807907104, 0.9457088112831116, 0.949202835559845]
             ).mean(),

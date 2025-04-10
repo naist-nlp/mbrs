@@ -172,27 +172,37 @@ class MetricCOMET(MetricAggregatableCache):
         )["score"]
 
     def corpus_score(
-        self, hypotheses: list[str], references: list[str], sources: list[str]
+        self,
+        hypotheses: list[str],
+        references_lists: list[list[str]],
+        sources: Optional[list[str]] = None,
     ) -> float:
         """Calculate the corpus-level score.
 
         Args:
             hypotheses (list[str]): Hypotheses.
-            references (list[str]): References.
-            source (list[str]): Sources.
+            references_lists (list[list[str]]): Lists of references.
+            sources (list[str], optional): Sources.
 
         Returns:
             float: The corpus score.
+
+        Raises:
+            ValueError: Raise this error when sources are not given.
         """
+        if sources is None:
+            raise ValueError("COMET requires the sources.")
+
         scores = []
-        for i in range(0, len(hypotheses), self.cfg.batch_size):
-            scores.append(
-                self.scores(
-                    hypotheses[i : i + self.cfg.batch_size],
-                    references[i : i + self.cfg.batch_size],
-                    sources[i : i + self.cfg.batch_size],
+        for references in references_lists:
+            for i in range(0, len(hypotheses), self.cfg.batch_size):
+                scores.append(
+                    self.scores(
+                        hypotheses[i : i + self.cfg.batch_size],
+                        references[i : i + self.cfg.batch_size],
+                        sources[i : i + self.cfg.batch_size],
+                    )
+                    .float()
+                    .cpu()
                 )
-                .float()
-                .cpu()
-            )
         return torch.cat(scores).mean().item()
