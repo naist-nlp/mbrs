@@ -18,10 +18,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-import simple_parsing
 import torch
 from simple_parsing import choice, field, flag
-from simple_parsing.wrappers import dataclass_wrapper
 from tabulate import tabulate, tabulate_formats
 from tqdm import tqdm
 
@@ -33,7 +31,7 @@ from mbrs.decoders import (
     DecoderReferenceless,
     get_decoder,
 )
-from mbrs.metrics import Metric, MetricEnum, get_metric
+from mbrs.metrics import Metric, MetricEnum, MetricReferenceless, get_metric
 from mbrs.selectors import Selector, get_selector
 
 
@@ -64,15 +62,21 @@ class CommonArguments:
     num_references: int | None = field(default=None)
     # Type of the decoder.
     decoder: str = field(
-        default="mbr", metadata={"choices": registry.get_registry("decoder")}
+        default="mbr",
+        metadata={
+            "choices": registry.get_registry(
+                DecoderReferenceBased | DecoderReferenceless
+            )
+        },
     )
     # Type of the metric.
     metric: str = field(
-        default="bleu", metadata={"choices": registry.get_registry("metric")}
+        default="bleu",
+        metadata={"choices": registry.get_registry(Metric | MetricReferenceless)},
     )
     # Type of the selector.
     selector: str = field(
-        default="nbest", metadata={"choices": registry.get_registry("selector")}
+        default="nbest", metadata={"choices": registry.get_registry(Selector)}
     )
     # Return the n-best hypotheses.
     nbest: int = field(default=1)
@@ -177,11 +181,9 @@ def main(args: Namespace) -> None:
             reference_lprobs = f.readlines()
         assert len(references) == len(reference_lprobs)
 
-    metric: Metric = get_metric(args.common.metric)(args.metric)
-    selector: Selector = get_selector(args.common.selector)(args.selector)
-    decoder: DecoderReferenceBased | DecoderReferenceless = get_decoder(
-        args.common.decoder
-    )(args.decoder, metric, selector)
+    metric = get_metric(args.common.metric)(args.metric)
+    selector = get_selector(args.common.selector)(args.selector)
+    decoder = get_decoder(args.common.decoder)(args.decoder, metric, selector)
 
     num_cands = args.common.num_candidates
     num_refs = args.common.num_references or num_cands

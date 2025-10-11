@@ -27,7 +27,7 @@ class TestArgumentParser:
             f.writelines(["tests", "a test"])
 
         cmd_args = ["--config_path", str(config_path)]
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(KeyError):
             parser = get_argparser(cmd_args)
 
         plugin_dir = os.path.join(

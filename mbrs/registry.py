@@ -1,58 +1,76 @@
-from typing import Any, Callable, Dict, Type, TypeVar
+from typing import Callable, TypeVar
 
 T = TypeVar("T")
 
-REGISTRIES = {}
 
+class Registry(dict[str, type[T]]):
+    """Registry that maps a name to its corresponding type."""
 
-def setup(registry_name: str):
-    """Setup a registry.
+    def __init__(self, base_type: type[T]):
+        super().__init__()
+        REGISTRIES[base_type] = self
+        self._base_type = base_type
 
-    Args:
-        registry_name (str): Registry name for grouping classes.
-
-    Returns:
-        Tuple of the two functions:
-          - register: Register a class as the given name.
-          - get_cls: Return the registered class of the given name.
-    """
-    REGISTRY = {}
-    REGISTRIES[registry_name] = REGISTRY
-
-    def register(name: str) -> Callable[[Type[T]], Type[T]]:
-        """Register a class as the given name.
+    def register(self, name: str) -> Callable[[type[T]], type[T]]:
+        """Register a type as the given name.
 
         Args:
-            name (str): The name of a class.
+            name (str): The name of a type.
+
+        Returns:
+            Callable[[type[T]], type[T]]: Register decorator function.
+
+        Raises:
+            ValueError: The type is already registered.
         """
 
-        def _register(cls: Type[T]):
-            if name in REGISTRY:
+        def _register(cls: type[T]) -> type[T]:
+            if not issubclass(cls, self._base_type):
+                raise ValueError(f"`{cls.__name__}` must inherit `{self._base_type}`.")
+
+            if (registered := self.get(name)) is not None:
                 raise ValueError(
-                    f"{name} already registered as {REGISTRY[name].__name__}. ({cls.__name__})"
+                    f"{cls.__name__}: `{name}` already registered as `{registered.__name__}`."
                 )
-            REGISTRY[name] = cls
+            self[name] = cls
             return cls
 
         return _register
 
-    def get_cls(name: str):
-        if name not in REGISTRY:
-            raise NotImplementedError(
-                f"`{name}` is not registered in `{registry_name}`."
-            )
-        return REGISTRY[name]
+    def get_cls(self, name: str) -> type[T]:
+        """Get a class type.
 
-    return register, get_cls
+        Args:
+            name: A registered name.
+
+        Returns:
+            type[T]: Class type.
+        """
+        return self.__getitem__(name)
+
+    def get_closure(
+        self,
+    ) -> tuple[Callable[[str], Callable[[type[T]], type[T]]], Callable[[str], type[T]]]:
+        """Get closure functions: `register()` and `get_cls()`.
+
+        Returns:
+            tuple:
+              - Callable[[str], Callable[[type[T]], type[T]]]: `register()` function.
+              - Callable[[str], type[T]]: `get_cls()` function.
+        """
+        return (self.register, self.get_cls)
 
 
-def get_registry(registry_name: str) -> Dict[str, Type[Any]]:
-    """Get registry of the given name.
+REGISTRIES: dict[type, Registry] = {}
+
+
+def get_registry(base_type: type[T]) -> Registry[T]:
+    """Get registry of the given base class type.
 
     Args:
-        registry_name (str): Registry name to be returned.
+        base_type (type[T]): Base class type that associated with the registry to be returned.
 
     Returns:
-        Dict[str, Type[Any]]: Class mapper from registered name to its corresponding class.
+        Registry[T]: Class mapper from registered name to its corresponding class.
     """
-    return REGISTRIES[registry_name]
+    return REGISTRIES[base_type]

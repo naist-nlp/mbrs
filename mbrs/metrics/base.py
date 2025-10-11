@@ -7,7 +7,7 @@ from typing import Optional, Sequence
 import torch
 from torch import Tensor
 
-from mbrs import functional, timer
+from mbrs import functional, registry, timer
 from mbrs.modules.kmeans import Kmeans
 
 
@@ -489,3 +489,6 @@ class MetricReferenceless(MetricBase, metaclass=abc.ABCMeta):
             float: The corpus score.
         """
         return self.scores(hypotheses, sources=sources).mean().cpu().float().item()
+
+
+register, get_metric = registry.Registry(Metric | MetricReferenceless).get_closure()
