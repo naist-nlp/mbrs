@@ -34,7 +34,7 @@ jobs:
     - name: Set up Python ${{ matrix.python-version }}
       run: uv python install
     - name: Install the project
-      run: uv sync --all-extras --dev
+      run: uv sync --all-extras --dev --index torch=https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match 
     - name: Test with pytest
       run: |
         uv run hf auth login --token ${{ secrets.HUGGINGFACE_TOKEN }}
