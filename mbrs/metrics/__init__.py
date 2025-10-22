@@ -11,10 +11,9 @@ from .base import (
     MetricBase,
     MetricCacheable,
     MetricReferenceless,
+    get_metric,
+    register,
 )
-
-register, get_metric = registry.setup("metric")
-
 from .bertscore import MetricBERTScore
 from .bleu import MetricBLEU
 from .bleurt import MetricBLEURT
@@ -32,6 +31,8 @@ __all__ = [
     "MetricAggregatableCache",
     "MetricCacheable",
     "MetricReferenceless",
+    "get_metric",
+    "register",
     "MetricBERTScore",
     "MetricBLEU",
     "MetricChrF",
@@ -47,4 +48,7 @@ __all__ = [
 class MetricEnum(str, enum.Enum): ...
 
 
-Metrics = MetricEnum("Metrics", {k: k for k in registry.get_registry("metric").keys()})
+Metrics = MetricEnum(
+    "Metrics",
+    {k: k for k in registry.get_registry(Metric | MetricReferenceless).keys()},
+)

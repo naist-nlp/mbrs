@@ -7,6 +7,8 @@ from typing import Optional
 import torch
 from torch import Tensor
 
+from mbrs import registry
+
 
 class Selector(abc.ABC):
     """Selector base class."""
@@ -100,3 +102,6 @@ class Selector(abc.ABC):
         Returns:
             Selector.Output: Selected hypotheses.
         """
+
+
+register, get_selector = registry.Registry(Selector).get_closure()

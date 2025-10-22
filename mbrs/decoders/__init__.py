@@ -2,9 +2,14 @@ import enum
 
 from mbrs import registry
 
-from .base import DecoderBase, DecoderReferenceBased, DecoderReferenceless
+from .base import (
+    DecoderBase,
+    DecoderReferenceBased,
+    DecoderReferenceless,
+    register,
+    get_decoder,
+)
 
-register, get_decoder = registry.setup("decoder")
 
 from .aggregate_mbr import DecoderAggregateMBR
 from .centroid_mbr import DecoderCentroidMBR
@@ -17,6 +22,8 @@ __all__ = [
     "DecoderBase",
     "DecoderReferenceBased",
     "DecoderReferenceless",
+    "register",
+    "get_decoder",
     "DecoderMBR",
     "DecoderAggregateMBR",
     "DecoderCentroidMBR",
@@ -24,5 +31,3 @@ __all__ = [
     "DecoderPruningMBR",
     "DecoderRerank",
 ]
-
-Decoders = enum.Enum("Decoders", registry.get_registry("decoder"))

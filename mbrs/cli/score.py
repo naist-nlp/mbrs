@@ -45,7 +45,8 @@ class CommonArguments:
     format: Format = choice(Format, default=Format.json)
     # Type of the metric.
     metric: str = field(
-        default="bleu", metadata={"choices": registry.get_registry("metric")}
+        default="bleu",
+        metadata={"choices": registry.get_registry(Metric | MetricReferenceless)},
     )
     # No verbose information and report.
     quiet: bool = flag(default=False)
@@ -94,7 +95,7 @@ def main(args: Namespace) -> None:
             assert num_sents == len(references)
             references_lists.append(references)
 
-    metric: Metric | MetricReferenceless = get_metric(args.common.metric)(args.metric)
+    metric = get_metric(args.common.metric)(args.metric)
 
     if isinstance(metric, MetricReferenceless):
         assert sources is not None

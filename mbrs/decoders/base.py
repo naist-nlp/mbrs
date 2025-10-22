@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from torch import Tensor
 
+from mbrs import registry
 from mbrs.metrics.base import Metric, MetricBase, MetricReferenceless
 from mbrs.selectors import Selector, SelectorNbest
 
@@ -184,3 +185,8 @@ class DecoderReferenceless(DecoderBase, metaclass=abc.ABCMeta):
         Returns:
             Decoder.Output: The n-best hypotheses.
         """
+
+
+register, get_decoder = registry.Registry(
+    DecoderReferenceBased | DecoderReferenceless
+).get_closure()

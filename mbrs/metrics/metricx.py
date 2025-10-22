@@ -55,7 +55,7 @@ class MT5ForRegression(MT5PreTrainedModel):
 
         decoder_config = copy.deepcopy(config)
         decoder_config.is_decoder = True
-        decoder_config.is_encoder_decoder = False
+        decoder_config.is_encoder_decoder = True
         decoder_config.num_layers = config.num_decoder_layers
         self.decoder = MT5Stack(decoder_config, self.shared)
 
