@@ -8,7 +8,7 @@ from torch import Tensor
 
 from mbrs import functional, timer
 from mbrs.metrics import Metric, MetricCacheable
-from mbrs.selectors import Selector, SelectorNbest
+from mbrs.selectors import SELECTOR_NBEST, Selector, SelectorNbest
 
 from . import register
 from .mbr import DecoderMBR
@@ -28,7 +28,7 @@ class DecoderPruningMBR(DecoderMBR):
         self,
         cfg: DecoderPruningMBR.Config,
         metric: Metric,
-        selector: Selector = SelectorNbest(SelectorNbest.Config()),
+        selector: Selector = SELECTOR_NBEST,
     ) -> None:
         if not isinstance(selector, SelectorNbest):
             raise ValueError(

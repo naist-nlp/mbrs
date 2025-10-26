@@ -62,7 +62,7 @@ class MetricBLEURT(Metric):
         cpu: bool = False
 
     def __init__(self, cfg: MetricBLEURT.Config):
-        self.cfg = cfg
+        super().__init__(cfg)
         self.scorer = BleurtForSequenceClassification.from_pretrained(cfg.model)
         self.tokenizer = BleurtTokenizer.from_pretrained(cfg.model)
         self.max_length = self.tokenizer.max_model_input_sizes[
@@ -197,7 +197,8 @@ class MetricBLEURT(Metric):
         return torch.cat(scores).view(len(references), len(hypotheses)).transpose(0, 1)
 
     def corpus_score(
-        self, hypotheses: list[str],
+        self,
+        hypotheses: list[str],
         references_lists: list[list[str]],
         sources: Optional[list[str]] = None,
     ) -> float:

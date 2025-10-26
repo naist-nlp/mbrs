@@ -8,7 +8,7 @@ from torch import Tensor
 
 from mbrs import registry
 from mbrs.metrics.base import Metric, MetricBase, MetricReferenceless
-from mbrs.selectors import Selector, SelectorNbest
+from mbrs.selectors import SELECTOR_NBEST, Selector
 
 
 class DecoderBase(abc.ABC):
@@ -18,7 +18,7 @@ class DecoderBase(abc.ABC):
         self,
         cfg: DecoderBase.Config,
         metric: MetricBase,
-        selector: Selector = SelectorNbest(SelectorNbest.Config()),
+        selector: Selector = SELECTOR_NBEST,
     ) -> None:
         self.cfg = cfg
         self.metric = metric

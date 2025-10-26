@@ -34,7 +34,7 @@ class MetricCOMET(MetricAggregatableCache):
         cpu: bool = False
 
     def __init__(self, cfg: MetricCOMET.Config):
-        self.cfg = cfg
+        super().__init__(cfg)
         self.scorer = load_from_checkpoint(download_model(cfg.model))
         self.scorer.eval()
         for param in self.scorer.parameters():

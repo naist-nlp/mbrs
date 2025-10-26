@@ -9,7 +9,7 @@ from torch import Tensor
 from mbrs import functional, timer
 from mbrs.metrics import MetricAggregatableCache
 from mbrs.modules.kmeans import Kmeans
-from mbrs.selectors import Selector, SelectorNbest
+from mbrs.selectors import SELECTOR_NBEST, Selector
 
 from . import register
 from .mbr import DecoderMBR
@@ -34,7 +34,7 @@ class DecoderCentroidMBR(DecoderMBR):
         self,
         cfg: DecoderCentroidMBR.Config,
         metric: MetricAggregatableCache,
-        selector: Selector = SelectorNbest(SelectorNbest.Config()),
+        selector: Selector = SELECTOR_NBEST,
     ) -> None:
         super().__init__(cfg, metric, selector=selector)
         self.kmeans = Kmeans(cfg.kmeans)
