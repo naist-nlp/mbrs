@@ -166,7 +166,7 @@ class MetricXCOMET(Metric):
         cpu: bool = False
 
     def __init__(self, cfg: MetricXCOMET.Config):
-        self.cfg = cfg
+        super().__init__(cfg)
         if cfg.model == "myyycroft/XCOMET-lite":
             self.scorer = XCOMETLiteMetric.from_pretrained(cfg.model)
         else:

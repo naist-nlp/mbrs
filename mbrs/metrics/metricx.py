@@ -272,7 +272,7 @@ class MetricMetricX(Metric):
     }
 
     def __init__(self, cfg: MetricMetricX.Config):
-        self.cfg = cfg
+        super().__init__(cfg)
         self.scorer = MT5ForRegression.from_pretrained(cfg.model)
         os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
         self.tokenizer = AutoTokenizer.from_pretrained(
