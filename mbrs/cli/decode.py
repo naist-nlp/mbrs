@@ -36,7 +36,7 @@ from mbrs.metrics import Metric, MetricEnum, MetricReferenceless, get_metric
 from mbrs.selectors import Selector, get_selector
 
 
-class Format(str, enum.Enum):
+class Format(enum.Enum):
     plain = "plain"
     json = "json"
 
