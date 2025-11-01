@@ -178,6 +178,8 @@ def get_argparser(args: Sequence[str] | None = None) -> ArgumentParser:
                             cfg_dict = asdict(cfg_dict)
                         config_type = get_metric(cfg_dict[f.name]).Config
                     else:
+                        if f.default is dataclasses.MISSING:
+                            continue
                         config_type = get_metric(f.default).Config
                     m.Config = make_dataclass(
                         m.Config.__name__,
