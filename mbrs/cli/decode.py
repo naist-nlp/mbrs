@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import sys
+import typing
 from argparse import FileType, Namespace
 from dataclasses import asdict, dataclass, fields, make_dataclass
 from typing import Sequence
@@ -35,9 +36,36 @@ from mbrs.metrics import Metric, MetricEnum, MetricReferenceless, get_metric
 from mbrs.selectors import Selector, get_selector
 
 
-class Format(enum.Enum):
+class Format(str, enum.Enum):
     plain = "plain"
     json = "json"
+
+    def output_results(self, res: DecoderBase.Output, output: typing.TextIO):
+        match self:
+            case self.plain:
+                for sent in res.sentence:
+                    print(sent, file=output)
+            case self.json:
+                for i, (sent, idx, score) in enumerate(
+                    zip(res.sentence, res.idx, res.score)
+                ):
+                    print(
+                        json.dumps(
+                            {
+                                "rank": i,
+                                "sentence": sent,
+                                "selected_idx": idx,
+                                "expected_score": score,
+                                **{
+                                    k: v
+                                    for k, v in asdict(res).items()
+                                    if k not in {"sentence", "idx", "score"}
+                                },
+                            },
+                            ensure_ascii=False,
+                        ),
+                        file=output,
+                    )
 
 
 @dataclass
@@ -89,65 +117,96 @@ class CommonArguments:
     # Number of digits for values of float point.
     width: int = field(default=1, alias=["-w"])
 
+    def get_decoder_type(self) -> type[DecoderReferenceBased | DecoderReferenceless]:
+        return get_decoder(self.decoder)
+
+    def get_metric_type(self) -> type[Metric | MetricReferenceless]:
+        return get_metric(self.metric)
+
+    def get_selector_type(self) -> type[Selector]:
+        return get_selector(self.selector)
+
+    def output_results(self, res: DecoderBase.Output):
+        return self.format.output_results(res, self.output)
+
 
 def get_argparser(args: Sequence[str] | None = None) -> ArgumentParser:
-    meta_parser = ArgumentParser(add_help=False, add_config_path_arg=True)
-    meta_parser.add_arguments(
-        CommonArguments, "common", dataclass_wrapper_class=DataclassWrapper
-    )
-    for _field in meta_parser._wrappers[0].fields:
-        _field.required = False
-    known_args, _ = meta_parser.parse_known_args(args=args)
-    metric_type = get_metric(known_args.common.metric)
-    decoder_type = get_decoder(known_args.common.decoder)
-    selector_type = get_selector(known_args.common.selector)
+    """Gets an argument parser.
 
-    parser = ArgumentParser(add_help=False, add_config_path_arg=True)
-    parser.add_arguments(
-        CommonArguments, "common", dataclass_wrapper_class=DataclassWrapper
-    )
-    parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
-    parser.add_arguments(decoder_type.Config, "decoder", prefix="decoder.")
-    parser.add_arguments(selector_type.Config, "selector", prefix="selector.")
-    for _field in parser._wrappers[0].fields:
-        _field.required = False
+    Args:
+        args (Sequence[str], optional): Command-line arguments. If not specified,
+          `sys.argv` will be parsed.
 
-    known_args, _ = parser.parse_known_args(args=args)
-    for cfg, m in [
-        (known_args.metric, metric_type),
-        (known_args.decoder, decoder_type),
-        (known_args.selector, selector_type),
-    ]:
-        for _field in fields(cfg):
-            field_name = _field.name
-            field_attr = getattr(cfg, field_name)
-            if isinstance(field_attr, MetricEnum):
-                config_type = get_metric(field_attr).Config
-                m.Config = make_dataclass(
-                    m.Config.__name__,
-                    fields=[
-                        (
-                            field_name,
-                            type(field_attr),
-                            dataclasses.field(default=field_attr),
-                        ),
-                        (
-                            field_name + "_config",
-                            config_type,
-                            dataclasses.field(default_factory=config_type),
-                        ),
-                    ],
-                    bases=(m.Config,),
-                )
+    Returns:
+        ArgumentParser: An argument parser.
 
-    parser = ArgumentParser(add_help=True, add_config_path_arg=True)
-    parser.add_arguments(
-        CommonArguments, "common", dataclass_wrapper_class=DataclassWrapper
-    )
-    parser.add_arguments(metric_type.Config, "metric", prefix="metric.")
-    parser.add_arguments(decoder_type.Config, "decoder", prefix="decoder.")
-    parser.add_arguments(selector_type.Config, "selector", prefix="selector.")
-    return parser
+    Todo:
+        - Improve the logic or use other libraries.
+    """
+    def build_parser(
+        known_args: Namespace | None = None, partial: bool = False
+    ) -> ArgumentParser:
+        parser = ArgumentParser(add_help=not partial, add_config_path_arg=True)
+        parser.add_arguments(
+            CommonArguments, "common", dataclass_wrapper_class=DataclassWrapper
+        )
+        if known_args is not None:
+            common_args: CommonArguments = known_args.common
+            for prefix, m in [
+                ("metric", common_args.get_metric_type()),
+                ("decoder", common_args.get_decoder_type()),
+                ("selector", common_args.get_selector_type()),
+            ]:
+                parser.add_arguments(m.Config, prefix, prefix=f"{prefix}.")
+        if partial:
+            for f in parser._wrappers[0].fields:
+                f.required = False
+        return parser
+
+    def parse_partial(common_args: CommonArguments, known_args: Namespace) -> Namespace:
+        for prefix, m in [
+            ("metric", common_args.get_metric_type()),
+            ("decoder", common_args.get_decoder_type()),
+            ("selector", common_args.get_selector_type()),
+        ]:
+            field_types = typing.get_type_hints(m.Config)
+            for f in fields(m.Config):
+                ftype = field_types[f.name]
+                if isinstance(ftype, type) and issubclass(ftype, MetricEnum):
+                    if (cfg_dict := getattr(known_args, prefix, None)) is not None:
+                        if dataclasses.is_dataclass(cfg_dict):
+                            cfg_dict = asdict(cfg_dict)
+                        config_type = get_metric(cfg_dict[f.name]).Config
+                    else:
+                        config_type = get_metric(f.default).Config
+                    m.Config = make_dataclass(
+                        m.Config.__name__,
+                        fields=[
+                            (f.name, ftype, dataclasses.field(default=f.default)),
+                            (
+                                f.name + "_config",
+                                config_type,
+                                dataclasses.field(default_factory=config_type),
+                            ),
+                        ],
+                        bases=(m.Config,),
+                    )
+        (known_args, _) = build_parser(
+            known_args=known_args, partial=True
+        ).parse_known_args(args=args)
+        return known_args
+
+    # 1. Determines component classes.
+    known_args, _ = build_parser(partial=True).parse_known_args(args=args)
+    common_args: CommonArguments = known_args.common
+    # 2. Parses default values.
+    known_args = parse_partial(common_args, known_args)
+    # 3. Prepares configuration classes via partially parsed settings.
+    known_args = parse_partial(common_args, known_args)
+    if known_args.config_path is not None:
+        known_args = parse_partial(common_args, known_args)
+    # 4. Builds a full configuration parser.
+    return build_parser(known_args=known_args)
 
 
 def format_argparser() -> ArgumentParser:
@@ -160,69 +219,45 @@ def main(args: Namespace) -> None:
     if not args.common.quiet:
         logger.info(args)
 
+    common_args: CommonArguments = args.common
+
     sources = None
-    if args.common.source is not None:
-        with open(args.common.source, mode="r") as f:
+    if common_args.source is not None:
+        with open(common_args.source, mode="r") as f:
             sources = f.readlines()
 
-    with open(args.common.hypotheses, mode="r") as f:
+    with open(common_args.hypotheses, mode="r") as f:
         hypotheses = f.readlines()
 
     references = None
-    if args.common.references is not None:
-        with open(args.common.references, mode="r") as f:
+    if common_args.references is not None:
+        with open(common_args.references, mode="r") as f:
             references = f.readlines()
     else:
         references = hypotheses
 
     reference_lprobs = None
-    if args.common.reference_lprobs is not None:
-        with open(args.common.reference_lprobs, mode="r") as f:
+    if common_args.reference_lprobs is not None:
+        with open(common_args.reference_lprobs, mode="r") as f:
             reference_lprobs = f.readlines()
         assert len(references) == len(reference_lprobs)
 
-    metric = get_metric(args.common.metric)(args.metric)
-    selector = get_selector(args.common.selector)(args.selector)
-    decoder = get_decoder(args.common.decoder)(args.decoder, metric, selector)
+    metric = common_args.get_metric_type()(args.metric)
+    selector = common_args.get_selector_type()(args.selector)
+    decoder = common_args.get_decoder_type()(args.decoder, metric, selector)
 
-    num_cands = args.common.num_candidates
-    num_refs = args.common.num_references or num_cands
+    num_cands = common_args.num_candidates
+    num_refs = common_args.num_references or num_cands
     num_sents = len(hypotheses) // num_cands
     assert num_sents * num_cands == len(hypotheses)
-
-    def output_results(res: DecoderBase.Output):
-        if args.common.format == Format.plain:
-            for sent in res.sentence:
-                print(sent, file=args.common.output)
-        elif args.common.format == Format.json:
-            for i, (sent, idx, score) in enumerate(
-                zip(res.sentence, res.idx, res.score)
-            ):
-                print(
-                    json.dumps(
-                        {
-                            "rank": i,
-                            "sentence": sent,
-                            "selected_idx": idx,
-                            "expected_score": score,
-                            **{
-                                k: v
-                                for k, v in asdict(res).items()
-                                if k not in {"sentence", "idx", "score"}
-                            },
-                        },
-                        ensure_ascii=False,
-                    ),
-                    file=args.common.output,
-                )
 
     if isinstance(decoder, DecoderReferenceless):
         for i in tqdm(range(num_sents)):
             src = sources[i].strip()
             hyps = [h.strip() for h in hypotheses[i * num_cands : (i + 1) * num_cands]]
             with timer.measure("total"):
-                output = decoder.decode(hyps, src, args.common.nbest)
-            output_results(output)
+                res = decoder.decode(hyps, src, common_args.nbest)
+            common_args.output_results(res)
     else:
         for i in tqdm(range(num_sents)):
             src = sources[i].strip() if sources is not None else None
@@ -249,24 +284,24 @@ def main(args: Namespace) -> None:
                 )
 
             with timer.measure("total"):
-                output = decoder.decode(
+                res = decoder.decode(
                     hyps,
                     refs,
                     src,
-                    nbest=args.common.nbest,
+                    nbest=common_args.nbest,
                     reference_lprobs=ref_lprobs,
                 )
-            output_results(output)
+            common_args.output_results(res)
 
-    if not args.common.quiet:
+    if not common_args.quiet:
         statistics = timer.aggregate().result(num_sents)
         table = tabulate(
             statistics,
             headers="keys",
-            tablefmt=args.common.report_format,
-            floatfmt=f".{args.common.width}f",
+            tablefmt=common_args.report_format,
+            floatfmt=f".{common_args.width}f",
         )
-        print(table, file=args.common.report)
+        print(table, file=common_args.report)
 
 
 def cli_main():

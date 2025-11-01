@@ -16,7 +16,6 @@ class SelectorNbest(Selector):
         nbest: int = 1,
         source: Optional[str] = None,
         maximize: bool = True,
-        *args,
         **kwargs,
     ) -> SelectorNbest.Output:
         """Select the final output list.

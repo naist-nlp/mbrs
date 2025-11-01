@@ -87,7 +87,6 @@ class Selector(abc.ABC):
         nbest: int = 1,
         source: Optional[str] = None,
         maximize: bool = True,
-        *args,
         **kwargs,
     ) -> Selector.Output:
         """Select the final output list.
