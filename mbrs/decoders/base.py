@@ -111,7 +111,6 @@ class DecoderBase(abc.ABC):
         expected_scores: Tensor,
         nbest: int = 1,
         source: Optional[str] = None,
-        *args,
         **kwargs,
     ) -> Selector.Output:
         """Select the final output list.
@@ -132,7 +131,6 @@ class DecoderBase(abc.ABC):
             nbest=nbest,
             source=source,
             maximize=self.maximize,
-            *args,
             **kwargs,
         )
 
